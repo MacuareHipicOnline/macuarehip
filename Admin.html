@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Macuare Hípico - Admin</title>
+  <style>
+    /* ========================================== */
+    /* CAPA DE SEGURIDAD VISUAL Y TÁCTIL (MÓVIL/PC)*/
+    /* ========================================== */
+    * {
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: Firefox; /* Firefox */
+      -ms-user-select: none;     /* IE10+/Edge */
+      user-select: none;         /* Estándar */
+      -webkit-touch-callout: none; /* Prevenir menú contextual en iOS/Android */
+    }
+
+    /* Permitir selección únicamente en campos de texto y formularios de entrada */
+    input, select, textarea {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+
+    :root {
+      --bg-gradient: linear-gradient(135deg, #1b3b22 0%, #0d1f12 100%);
+      --card-bg: rgba(22, 38, 26, 0.92);
+      --card-border: rgba(212, 175, 55, 0.25);
+      --primary: #2e7d32;
+      --primary-hover: #1b5e20;
+      --accent: #d4af37;
+      --text-main: #f4f6f3;
+      --text-muted: #b0bec5;
+      --success-bg: rgba(46, 125, 50, 0.2);
+      --success-border: rgba(46, 125, 50, 0.4);
+      --success-text: #81c784;
+      --error-bg: rgba(198, 40, 40, 0.2);
+      --error-border: rgba(198, 40, 40, 0.4);
+      --error-text: #ef5350;
+      --arena-bg: #2a241e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 15px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--card-border);
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    h3 {
+      color: var(--accent);
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .form-group { margin-bottom: 12px; }
+
+    label {
+      display: block;
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+      color: var(--text-muted);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: rgba(13, 31, 18, 0.9);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(13, 31, 18, 1);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    }
+
+    select option { background: #0d1f12; color: white; }
+
+    button {
+      width: 100%;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(46, 125, 50, 0.5); }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
+      color: #0d1f12;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+    }
+    .btn-accent:hover {
+      background: linear-gradient(135deg, #e5be42 0%, #d4af37 100%);
+    }
+
+    .btn-valida-guardar {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+      box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+      border-radius: 6px;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #c62828 0%, #8e0000 100%);
+      box-shadow: 0 2px 8px rgba(198, 40, 40, 0.3);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      margin: 0;
+      width: auto;
+    }
+
+    .btn-danger:disabled {
+      background: rgba(100, 116, 139, 0.3);
+      color: #64748b;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .hidden { display: none !important; }
+
+    .alert {
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+      font-weight: 500;
+    }
+    .alert-error { background-color: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+    .alert-success { background-color: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+
+    .card {
+      background: rgba(13, 31, 18, 0.7);
+      border: 1px solid var(--card-border);
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+      background: rgba(13, 31, 18, 0.9);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 12px 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    a.logout-link {
+      background: rgba(198, 40, 40, 0.2);
+      border: 1px solid rgba(198, 40, 40, 0.4);
+      color: var(--error-text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      width: 100%;
+    }
+
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-bottom: 15px;
+      background: rgba(13, 31, 18, 0.8);
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      width: 100%;
+      padding: 9px 8px;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-top: 0;
+      box-shadow: none;
+      text-align: center;
+    }
+
+    .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(46,125,50,0.4); }
+
+    .sub-tabs {
+      display: flex;
+      overflow-x: auto;
+      gap: 6px;
+      margin-bottom: 15px;
+      background: rgba(13, 31, 18, 0.9);
+      padding: 5px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      scrollbar-width: thin;
+    }
+
+    .sub-tab-btn {
+      flex: 0 0 auto;
+      padding: 7px 12px;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      cursor: pointer;
+      margin-top: 0;
+      box-shadow: none;
+      text-align: center;
+    }
+
+    .sub-tab-btn.active {
+      background: var(--accent);
+      color: #0d1f12;
+      font-weight: 700;
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      max-height: 450px;
+      margin-top: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 0.8rem; 
+      text-align: left; 
+      white-space: nowrap;
+    }
+    th, td { 
+      padding: 9px 8px; 
+      border-bottom: 1px solid rgba(212, 175, 55, 0.1); 
+    }
+    th { background: rgba(13, 31, 18, 0.98); color: var(--accent); position: sticky; top: 0; z-index: 10; font-size: 0.75rem; }
+
+    .col-seleccion-6 {
+      max-width: 280px;
+      white-space: normal !important;
+      word-break: break-word;
+      line-height: 1.3;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .fila-podio-1 { background-color: rgba(212, 175, 55, 0.25) !important; border-left: 4px solid #d4af37; }
+    .fila-podio-2 { background-color: rgba(176, 190, 197, 0.2) !important; border-left: 4px solid #b0bec5; }
+    .fila-podio-3 { background-color: rgba(205, 127, 50, 0.2) !important; border-left: 4px solid #cd7f32; }
+
+    .badge-retirado { background: rgba(198, 40, 40, 0.25); color: var(--error-text); padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-activo { background: rgba(46, 125, 50, 0.25); color: var(--success-text); padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-corrio { background: rgba(33, 150, 243, 0.25); color: #64b5f6; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-pendiente { background: rgba(212, 175, 55, 0.25); color: var(--accent); padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-verificado { background: rgba(46, 125, 50, 0.25); color: var(--success-text); padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .valida-box { background: rgba(13, 31, 18, 0.9); border: 1px solid var(--card-border); padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+
+    .metricas-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .metrica-card {
+      background: rgba(13, 31, 18, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+    .metrica-card h4 {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .metrica-card .valor {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    @media (min-width: 768px) {
+      body { padding: 20px; }
+      .container { padding: 25px; }
+      h2 { font-size: 1.6rem; }
+      .user-info { flex-direction: row; justify-content: space-between; align-items: center; }
+      a.logout-link { width: auto; }
+      .nav-tabs { display: flex; flex-wrap: wrap; }
+      .tab-btn { flex: 1; min-width: 110px; font-size: 0.85rem; }
+      .grid-2 { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+      .grid-4 { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .metricas-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+      .metrica-card { padding: 15px; }
+      .metrica-card h4 { font-size: 0.75rem; }
+      .metrica-card .valor { font-size: 1.3rem; }
+      table { font-size: 0.85rem; }
+      th { font-size: 0.8rem; }
+      button { width: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- LOGIN -->
+    <div id="loginSection">
+      <h2>🏇 Sistema Macuare Hípico</h2>
+      <div id="loginAlert" class="hidden alert"></div>
+      <div class="form-group"><label>Usuario</label><input type="text" id="loginUsuario" placeholder="Usuario"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+      <button class="btn-accent" onclick="intentarLogin()">Acceder</button>
+    </div>
+
+    <!-- PANEL ADMIN -->
+    <div id="adminPanel" class="hidden">
+      <h2>🏆 Panel de Control Macuare</h2>
+      <div class="user-info">
+        <span>Sesión: <b id="lblAdminUser" style="color: var(--accent);"></b></span>
+        <a href="#" class="logout-link" onclick="cerrarSesion()">Cerrar Sesión</a>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="cambiarTab('tabProcesar', this)">🎯 Cómputo</button>
+        <button class="tab-btn" onclick="cambiarTab('tabCarreras', this)">🐎 Carreras</button>
+        <button class="tab-btn" onclick="cambiarTab('tabPagoMovil', this)">📱 Pago Móvil</button>
+        <button class="tab-btn" onclick="cambiarTab('tabCajas', this)">💰 Balances</button>
+        <button class="tab-btn" onclick="cambiarTab('tabEstadisticas', this)">📊 Estadísticas</button>
+        <button class="tab-btn" onclick="cambiarTab('tabUsuarios', this)">👥 Usuarios</button>
+      </div>
+      
+      <div id="adminAlert" class="hidden alert"></div>
+
+      <!-- CÓMPUTO -->
+      <div id="tabProcesar" class="tab-content">
+        <div class="card">
+          <h3>Ingreso de Ganadores (Puestos por Válida)</h3>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">Indique el número de los ejemplares ganadores y cuántos puestos fueron válidos para la carrera.</p>
+          
+          <div class="grid-2" id="contenedorValidasForm"></div>
+        </div>
+
+        <div class="card" style="border: 1px solid rgba(198, 40, 40, 0.4); background: rgba(13, 31, 18, 0.85);">
+          <h3 style="color: #ef5350;">⚠️ Archivar y Reiniciar Jornada</h3>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+            Copia las carreras y tickets actuales al historial y limpia el sistema para iniciar una nueva jornada.
+          </p>
+          <button class="btn-danger" style="padding: 10px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; width: 100%;" onclick="confirmarAccion('reiniciar_jornada', '⚠️ ADVERTENCIA: ¿Está seguro de archivar y reiniciar toda la jornada hípica actual?', reiniciarJornada)">
+            🔄 Archivar Historial y Reiniciar Sistema
+          </button>
+        </div>
+      </div>
+
+      <!-- CARRERAS -->
+      <div id="tabCarreras" class="tab-content hidden">
+        <div class="card" style="margin-bottom: 15px;">
+          <h3>Registrar Ejemplar</h3>
+          <div class="grid-3">
+            <div class="form-group"><label>Hipódromo:</label><select id="nuevoHipodromo"><option value="La Rinconada">La Rinconada</option><option value="Valencia">Valencia</option></select></div>
+            <div class="form-group"><label>Válida / Carrera:</label><select id="nuevaValida"><option value="Valida 1">Valida 1</option><option value="Valida 2">Valida 2</option><option value="Valida 3">Valida 3</option><option value="Valida 4">Valida 4</option><option value="Valida 5">Valida 5</option><option value="Valida 6">Valida 6</option></select></div>
+            <div class="form-group"><label>N° Reunión:</label><input type="text" id="nuevaReunion" placeholder="Ej: 035"></div>
+          </div>
+          <div class="grid-4" style="margin-top: 10px;">
+            <div class="form-group"><label>Fecha:</label><input type="date" id="nuevaFecha"></div>
+            <div class="form-group"><label>Hora:</label><input type="text" id="nuevaHora" placeholder="Ej: 3:30 PM"></div>
+            <div class="form-group"><label>Distancia:</label><input type="text" id="nuevaDistancia" placeholder="1200m"></div>
+            <div class="form-group"><label>N° Caballo:</label><input type="number" id="nuevoNumero" min="1"></div>
+          </div>
+          <div class="grid-2" style="margin-top: 10px;">
+            <div class="form-group"><label>Nombre:</label><input type="text" id="nuevoEjemplar" placeholder="Ej: Rayo de Luz"></div>
+            <div class="form-group"><label>Estado / Inscrito:</label><select id="nuevoEstado"><option value="Activo">Activo</option><option value="Retirado">Retirado</option></select></div>
+          </div>
+          <button class="btn-accent" onclick="confirmarAccion('registrar_ejemplar', '¿Desea registrar este nuevo ejemplar en el sistema?', registrarNuevoEjemplar)" style="width: 100%; margin-top: 12px;">+ Agregar Ejemplar</button>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>Lista en Vivo por Válidas</h3>
+          </div>
+
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" onclick="cambiarSubTabValida('Valida 1', this)">Válida 1</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 2', this)">Válida 2</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 3', this)">Válida 3</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 4', this)">Válida 4</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 5', this)">Válida 5</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 6', this)">Válida 6</button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hipódromo</th>
+                  <th>Carrera</th>
+                  <th>Reunión</th>
+                  <th>Fecha/Hora</th>
+                  <th>Dist.</th>
+                  <th>N°</th>
+                  <th>Ejemplar</th>
+                  <th>Resultado</th>
+                  <th>Estado</th>
+                  <th>Puestos</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCarrerasBody"><tr><td colspan="11" style="text-align: center;">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGO MÓVIL / PREMIOS -->
+      <div id="tabPagoMovil" class="tab-content hidden">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>📱 Gestión de Pagos Móviles</h3>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+            Tickets con estatus <b>Ganador</b> pendientes de pago. Visualice los datos bancarios del jugador, ingrese la referencia del pago móvil y haga clic en <b>Pagado</b>.
+          </p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Ticket</th>
+                  <th>Vendedor</th>
+                  <th>Jugador</th>
+                  <th>Premio Potencial</th>
+                  <th>Banco PagoMóvil</th>
+                  <th>Teléfono</th>
+                  <th>Cédula</th>
+                  <th>Ref. Pago Móvil</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tablaPagoMovilBody">
+                <tr><td colspan="9" style="text-align: center;">Cargando tickets ganadores...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAJAS / BALANCES Y CIERRE DE TAQUILLAS -->
+      <div id="tabCajas" class="tab-content hidden">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>Balances y Cierre de Taquillas</h3>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+            Visualice las ventas, comisiones y la referencia de pago móvil enviada por cada vendedor.
+          </p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Taquilla</th>
+                  <th>Ventas</th>
+                  <th>Premios</th>
+                  <th>La Queda</th>
+                  <th>Comisión</th>
+                  <th>Neto Entregar</th>
+                  <th>Referencia Pago</th>
+                  <th>Estatus</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCajasBody"><tr><td colspan="9" style="text-align: center;">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div id="tabEstadisticas" class="tab-content hidden">
+        <div class="card">
+          <h3>📊 Historial de Ventas y Métricas</h3>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">Resumen general acumulado de ventas, premios y rentabilidad.</p>
+
+          <div class="metricas-grid">
+            <div class="metrica-card">
+              <h4>Total Ventas</h4>
+              <div class="valor" id="statVentas" style="color: #64b5f6;">0.00</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Total Premios</h4>
+              <div class="valor" id="statPremios" style="color: #ef5350;">0.00</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Comisiones</h4>
+              <div class="valor" id="statComisiones" style="color: var(--accent);">0.00</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Ganancia Neta</h4>
+              <div class="valor" id="statNeto" style="color: #81c784;">0.00</div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 12px;">
+            <h3>Historial Detallado</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Taquilla</th>
+                  <th>Ventas</th>
+                  <th>Premios</th>
+                  <th>La Queda</th>
+                  <th>Comisión</th>
+                  <th>Neto Sistema</th>
+                </tr>
+              </thead>
+              <tbody id="tablaEstadisticasBody">
+                <tr><td colspan="6" style="text-align: center;">Cargando datos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+          <h3>🛡️ Control de Riesgo y Auditoría</h3>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">Monitoreo en tiempo real de tickets emitidos y premios máximos.</p>
+
+          <div class="form-group" style="margin-bottom: 15px; background: rgba(13, 31, 18, 0.9); padding: 12px; border-radius: 10px; border: 1px solid var(--card-border);">
+            <label style="color: var(--accent); font-weight: bold; margin-bottom: 6px;">⚙ Tope de Riesgo (Ajustes_Banca F2)</label>
+            <div class="grid-2" style="gap: 8px;">
+              <input type="number" id="inputTopeRiesgo" placeholder="Ej: 5000">
+              <button class="btn-accent" style="margin-top: 0; width: 100%;" onclick="guardarTopeRiesgo()">💾 Guardar Tope</button>
+            </div>
+          </div>
+
+          <div class="metricas-grid" style="margin-bottom: 15px;">
+            <div class="metrica-card">
+              <h4>Tickets Vivos</h4>
+              <div class="valor" id="statTicketsVivos" style="color: #81c784;">0</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Tickets Perdidos</h4>
+              <div class="valor" id="statTicketsPerdidos" style="color: #ef5350;">0</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Tickets Pagados</h4>
+              <div class="valor" id="statTicketsPagados" style="color: #64b5f6;">0</div>
+            </div>
+            <div class="metrica-card">
+              <h4>Premio Máx. Riesgo</h4>
+              <div class="valor" id="statPremioMaxRiesgo" style="color: var(--accent);">0.00</div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Buscar Ticket o Vendedor:</label>
+              <input type="text" id="filtroBusquedaTicket" placeholder="Código, taquilla..." oninput="filtrarTicketsAudit()">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Estatus:</label>
+              <select id="filtroEstatusTicket" onchange="filtrarTicketsAudit()">
+                <option value="">Todos los Estatus</option>
+                <option value="Vivo">Vivo</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Perdido">Perdido</option>
+                <option value="Ganador">Ganador</option>
+                <option value="Pagado">Pagado</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 12px;">
+            <h3>Tabla de Auditoría</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Ticket</th>
+                  <th>Vendedor</th>
+                  <th>Jugador</th>
+                  <th>Selección 6</th>
+                  <th>Monto</th>
+                  <th>Premio Pot.</th>
+                  <th>Estatus</th>
+                </tr>
+              </thead>
+              <tbody id="tablaTicketsAuditBody">
+                <tr><td colspan="7" style="text-align: center;">Cargando tickets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div id="tabUsuarios" class="tab-content hidden">
+        <div class="card" style="margin-bottom: 15px;">
+          <h3 id="tituloFormUsuario">Crear / Editar Usuario</h3>
+          <input type="hidden" id="editUserId" value="">
+          <div class="grid-2">
+            <div class="form-group"><label>Usuario:</label><input type="text" id="usrNombre" placeholder="Ej: taquilla01"></div>
+            <div class="form-group"><label>Contraseña:</label><input type="text" id="usrPassword" placeholder="Clave de acceso"></div>
+          </div>
+          <div class="grid-2" style="margin-top: 10px;">
+            <div class="form-group"><label>Rol:</label><select id="usrRol"><option value="vendedor">Vendedor</option><option value="admin">Admin</option></select></div>
+            <div class="form-group"><label>Estatus:</label><select id="usrEstado"><option value="Activo">Activo</option><option value="Suspendido">Suspendido</option></select></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+            <button class="btn-accent" onclick="confirmarAccion('guardar_usuario', '¿Desea guardar los cambios de este usuario en el sistema?', guardarUsuarioSistema)" style="width: 100%;">💾 Guardar Usuario</button>
+            <button id="btnCancelarEdicion" class="hidden" onclick="limpiarFormUsuario()" style="background: rgba(100,116,139,0.5); width: 100%;">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>Lista de Usuarios</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Usuario</th>
+                  <th>Contraseña</th>
+                  <th>Rol</th>
+                  <th>Estatus</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaUsuariosBody"><tr><td colspan="6" style="text-align: center;">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ================================================= */
+    /* CAPA DE SEGURIDAD JAVASCRIPT (BLOQUEOS Y INSPECTOR)*/
+    /* ================================================= */
+
+    // 1. Bloquear Clic Derecho
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    // 2. Bloquear atajos de teclado para inspección, copias y código fuente
+    document.addEventListener('keydown', function(e) {
+      // Bloquear F12
+      if (e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+      // Bloquear Ctrl + Shift + I, Ctrl + Shift + J, Ctrl + Shift + C
+      if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+        e.preventDefault();
+        return false;
+      }
+      // Bloquear Ctrl + U (Ver código fuente) y Ctrl + S (Guardar página)
+      if (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // 3. Sistema trampa Anti-DevTools (Detecta apertura de consola externa o inspector)
+    (function() {
+      try {
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+          get: function() {
+            // Acción en caso de que intenten inspeccionar o abrir consola de desarrollador
+            document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#0d1f12;color:#ef5350;font-family:sans-serif;text-align:center;padding:20px;'><h2>⚠️️ Acceso Restringido</h2><p>Herramientas de inspección no permitidas en este sistema.</p></div>";
+            throw new Error("Debugger detectado");
+          }
+        });
+        setInterval(function() {
+          console.log(element);
+          console.clear();
+        }, 1000);
+      } catch (err) {}
+    })();
+
+    /* ================================================= */
+    /* LÓGICA PRINCIPAL DEL SISTEMA                      */
+    /* ================================================= */
+
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
+
+    let intervaloAutoRefresh = null;
+    let temporizadorAlerta = null;
+    let isTypingRefPago = false;
+    let subTabValidaActual = "Valida 1";
+    let mapaResultadosGlobal = {};
+
+    window.onload = function() {
+      generarEstructuraValidas();
+      var savedUser = localStorage.getItem('macuare_admin_user');
+      if (savedUser) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('lblAdminUser').innerText = savedUser;
+        cargarResultadosGuardados();
+        cargarTopeRiesgo();
+        cargarBalancesCajas();
+        iniciarAutoActualizacion();
+      }
+      var hoy = new Date().toISOString().split('T')[0];
+      if(document.getElementById('nuevaFecha')) document.getElementById('nuevaFecha').value = hoy;
+
+      document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+          if (intervaloAutoRefresh) clearInterval(intervaloAutoRefresh);
+        } else {
+          iniciarAutoActualizacion();
+        }
+      });
+    };
+
+    function generarEstructuraValidas() {
+      var html = '';
+      for(let i=1; i<=6; i++) {
+        html += `
+          <div class="valida-box">
+            <label style="color: var(--accent); font-weight: bold;">Valida ${i}</label>
+            <div class="grid-3" style="margin-top: 6px;">
+              <div><label style="font-size:0.7rem;">1° Lugar</label><input type="number" id="v${i}_1" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
+              <div><label style="font-size:0.7rem;">2° Lugar</label><input type="number" id="v${i}_2" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
+              <div><label style="font-size:0.7rem;">3° Lugar</label><input type="number" id="v${i}_3" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
+            </div>
+            <div style="margin-top: 8px;">
+              <label style="font-size:0.7rem;">Puestos Válidos</label>
+              <select id="v${i}_puestos" onchange="guardarLocalmenteOptimizado()">
+                <option value="3">3 Puestos</option>
+                <option value="2">2 Puestos</option>
+                <option value="1">1 Puesto</option>
+              </select>
+            </div>
+            <button class="btn-valida-guardar" onclick="confirmarAccion('guardar_valida_${i}', '¿Desea guardar y procesar los resultados de la Válida ${i}?', function() { guardarValidaIndividual(${i}); })">💾 Guardar Válida ${i}</button>
+          </div>
+        `;
+      }
+      var contenedor = document.getElementById('contenedorValidasForm');
+      if (contenedor) contenedor.innerHTML = html;
+    }
+
+    function cambiarSubTabValida(validaNombre, btnElement) {
+      subTabValidaActual = validaNombre;
+      document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active'));
+      btnElement.classList.add('active');
+      cargarDatosCarreras();
+    }
+
+    function mostrarAlerta(mensaje, tipo = 'success', duracionMs = 4000) {
+      var alertBox = document.getElementById('adminAlert');
+      if (!alertBox) return;
+      
+      alertBox.className = "alert " + (tipo === 'error' ? 'alert-error' : 'alert-success');
+      alertBox.innerText = mensaje;
+      alertBox.classList.remove('hidden');
+
+      if (temporizadorAlerta) clearTimeout(temporizadorAlerta);
+      if (duracionMs > 0) {
+        temporizadorAlerta = setTimeout(() => { alertBox.classList.add('hidden'); }, duracionMs);
+      }
+    }
+
+    function confirmarAccion(accion, mensaje, funcionCallback) {
+      if (confirm(mensaje)) { funcionCallback(); }
+    }
+
+    let debounceTimer = null;
+    function guardarLocalmenteOptimizado() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        var resultadosCache = {};
+        for (var i = 1; i <= 6; i++) {
+          resultadosCache['v' + i + '_1'] = document.getElementById('v' + i + '_1') ? document.getElementById('v' + i + '_1').value : '';
+          resultadosCache['v' + i + '_2'] = document.getElementById('v' + i + '_2') ? document.getElementById('v' + i + '_2').value : '';
+          resultadosCache['v' + i + '_3'] = document.getElementById('v' + i + '_3') ? document.getElementById('v' + i + '_3').value : '';
+          resultadosCache['v' + i + '_puestos'] = document.getElementById('v' + i + '_puestos') ? document.getElementById('v' + i + '_puestos').value : '3';
+        }
+        localStorage.setItem('macuare_resultados_cache', JSON.stringify(resultadosCache));
+      }, 300);
+    }
+
+    function cargarResultadosGuardados() {
+      try {
+        var localCache = JSON.parse(localStorage.getItem('macuare_resultados_cache') || '{}');
+        for (var i = 1; i <= 6; i++) {
+          if (localCache['v' + i + '_1'] !== undefined && document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = localCache['v' + i + '_1'];
+          if (localCache['v' + i + '_2'] !== undefined && document.getElementById('v' + i + '_2')) document.getElementById('v' + i + '_2').value = localCache['v' + i + '_2'];
+          if (localCache['v' + i + '_3'] !== undefined && document.getElementById('v' + i + '_3')) document.getElementById('v' + i + '_3').value = localCache['v' + i + '_3'];
+          if (localCache['v' + i + '_puestos'] !== undefined && document.getElementById('v' + i + '_puestos')) document.getElementById('v' + i + '_puestos').value = localCache['v' + i + '_puestos'];
+        }
+      } catch(e) {}
+
+      enviarPeticion({ action: 'getResultados' }, function(res) {
+        if (res && res.success && res.data) {
+          mapaResultadosGlobal = {};
+          res.data.forEach(function(row) {
+            var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+            var match = nombreValida.match(/(\d+)/);
+            if (match) {
+              var idx = parseInt(match[1]);
+              if (idx >= 1 && idx <= 6) {
+                var c1 = String(row.CaballoGanador || "").trim();
+                var c2 = String(row['2do lugar'] || "").trim();
+                var c3 = String(row['3er lugar'] || "").trim();
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+
+                mapaResultadosGlobal[idx] = {
+                  ganadores: [c1, c2, c3].filter(c => c !== ""),
+                  puestos: puestosValidos
+                };
+
+                if (c1 !== '' && document.getElementById('v' + idx + '_1') && !document.getElementById('v' + idx + '_1').value) document.getElementById('v' + idx + '_1').value = c1;
+                if (c2 !== '' && document.getElementById('v' + idx + '_2') && !document.getElementById('v' + idx + '_2').value) document.getElementById('v' + idx + '_2').value = c2;
+                if (c3 !== '' && document.getElementById('v' + idx + '_3') && !document.getElementById('v' + idx + '_3').value) document.getElementById('v' + idx + '_3').value = c3;
+                if (puestosValidos !== '' && document.getElementById('v' + idx + '_puestos')) document.getElementById('v' + idx + '_puestos').value = puestosValidos;
+              }
+            }
+          });
+          guardarLocalmenteOptimizado();
+        }
+      });
+    }
+
+    function cargarTopeRiesgo() {
+      enviarPeticion({ action: 'getTopeRiesgo' }, function(res) {
+        if (res && res.success && res.topeRiesgo !== undefined) {
+          var input = document.getElementById('inputTopeRiesgo');
+          if (input) input.value = res.topeRiesgo;
+        }
+      });
+    }
+
+    function guardarTopeRiesgo() {
+      var tope = document.getElementById('inputTopeRiesgo').value;
+      if (!tope) {
+        mostrarAlerta("Por favor ingrese un valor válido para el tope de riesgo.", "error", 4000);
+        return;
+      }
+      mostrarAlerta("Guardando tope de riesgo en celda F2...", "success", 0);
+      enviarPeticion({ action: 'guardarTopeRiesgo', topeRiesgo: tope }, function(res) {
+        var msg = (res && res.message) ? res.message : "¡Éxito! Tope actualizado.";
+        mostrarAlerta(msg, "success", 4000);
+        cargarTopeRiesgo();
+      });
+    }
+
+    const apiCache = new Map();
+
+    function enviarPeticion(params, callbackExito) {
+      var actionKey = params.action;
+      var cacheKey = JSON.stringify(params);
+
+      if (['getCarreras', 'getResultados', 'getTickets', 'getCajas', 'getUsuarios', 'getTopeRiesgo', 'obtenerHistorialMetricas'].includes(actionKey)) {
+        if (apiCache.has(cacheKey)) {
+          var cached = apiCache.get(cacheKey);
+          if (Date.now() - cached.timestamp < 15000) {
+            callbackExito(cached.data);
+            return;
+          }
+        }
+      }
+
+      var url = WEB_APP_URL + "?";
+      var queryArr = [];
+      for (var key in params) { queryArr.push(key + "=" + encodeURIComponent(params[key])); }
+      var callbackName = 'cb_' + Math.floor(Math.random() * 1000000) + '_' + Date.now();
+      queryArr.push("callback=" + callbackName);
+      url += queryArr.join("&");
+
+      window[callbackName] = function(res) {
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) { scriptTag.parentNode.removeChild(scriptTag); }
+        apiCache.set(cacheKey, { timestamp: Date.now(), data: res });
+        if (callbackExito) callbackExito(res);
+      };
+
+      var scriptTag = document.createElement('script');
+      scriptTag.src = url;
+      scriptTag.onerror = function() {
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) { scriptTag.parentNode.removeChild(scriptTag); }
+        if (callbackExito) callbackExito({ success: false, message: "Error de conexión con Google Sheets." });
+      };
+      document.body.appendChild(scriptTag);
+    }
+
+    function intentarLogin() {
+      var usuario = document.getElementById('loginUsuario').value.trim();
+      var password = document.getElementById('loginPassword').value.trim();
+      var alertBox = document.getElementById('loginAlert');
+
+      if (!usuario || !password) {
+        alertBox.className = "alert alert-error";
+        alertBox.innerText = "Complete los campos de usuario y contraseña.";
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      alertBox.className = "alert alert-success";
+      alertBox.innerText = "Verificando credenciales...";
+      alertBox.classList.remove('hidden');
+
+      enviarPeticion({ action: 'login', usuario: usuario, password: password }, function(res) {
+        var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
+        if ((res && res.success && String(res.rol).toLowerCase() === 'admin') || esAdminMaster) {
+          var nombreUsuarioValido = (res && res.usuario) ? res.usuario : usuario;
+          localStorage.setItem('macuare_admin_user', nombreUsuarioValido);
+          document.getElementById('loginSection').classList.add('hidden');
+          document.getElementById('adminPanel').classList.remove('hidden');
+          document.getElementById('lblAdminUser').innerText = nombreUsuarioValido;
+          cargarResultadosGuardados();
+          cargarTopeRiesgo();
+          cargarBalancesCajas();
+          iniciarAutoActualizacion();
+        } else {
+          alertBox.className = "alert alert-error";
+          alertBox.innerText = (res && res.message) ? res.message : "Acceso denegado.";
+          alertBox.classList.remove('hidden');
+        }
+      });
+    }
+
+    function cerrarSesion() {
+      if (intervaloAutoRefresh) clearInterval(intervaloAutoRefresh);
+      localStorage.removeItem('macuare_admin_user');
+      window.location.reload();
+    }
+
+    function iniciarAutoActualizacion() {
+      if (intervaloAutoRefresh) clearInterval(intervaloAutoRefresh);
+      intervaloAutoRefresh = setInterval(function() {
+        var panelAdmin = document.getElementById('adminPanel');
+        if (!panelAdmin || panelAdmin.classList.contains('hidden') || document.hidden || isTypingRefPago) return;
+
+        apiCache.clear();
+
+        if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
+          cargarDatosCarreras();
+        } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
+          cargarDatosPagoMovil();
+        } else if (!document.getElementById('tabCajas').classList.contains('hidden')) {
+          cargarBalancesCajas();
+        } else if (!document.getElementById('tabEstadisticas').classList.contains('hidden')) {
+          cargarDatosEstadisticas();
+          cargarDatosTicketsAudit();
+          cargarTopeRiesgo();
+        } else if (!document.getElementById('tabUsuarios').classList.contains('hidden')) {
+          cargarUsuariosSistema();
+        } else if (!document.getElementById('tabProcesar').classList.contains('hidden')) {
+          cargarResultadosGuardados();
+        }
+      }, 30000);
+    }
+
+    function cambiarTab(tabId, btnElement) {
+      var alertBox = document.getElementById('adminAlert');
+      if (alertBox) alertBox.classList.add('hidden');
+      if (temporizadorAlerta) clearTimeout(temporizadorAlerta);
+
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.remove('hidden');
+      btnElement.classList.add('active');
+
+      if (tabId === 'tabCarreras') cargarDatosCarreras();
+      if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
+      if (tabId === 'tabCajas') cargarBalancesCajas();
+      if (tabId === 'tabEstadisticas') {
+        cargarDatosEstadisticas();
+        cargarDatosTicketsAudit();
+        cargarTopeRiesgo();
+      }
+      if (tabId === 'tabUsuarios') cargarUsuariosSistema();
+      if (tabId === 'tabProcesar') cargarResultadosGuardados();
+    }
+
+    function guardarValidaIndividual(numValida) {
+      var g1_val = document.getElementById('v' + numValida + '_1').value || "";
+      var g2_val = document.getElementById('v' + numValida + '_2').value || "";
+      
+      if (!g1_val && !g2_val) {
+        if (!confirm("Está guardando la Válida " + numValida + " vacía. ¿Desea continuar?")) {
+          return;
+        }
+      }
+
+      mostrarAlerta("Guardando Válida " + numValida + " y procesando...", "success", 0);
+      guardarLocalmenteOptimizado();
+      apiCache.clear();
+
+      var payload = { action: 'guardarResultados', validaIndividual: numValida };
+
+      for (var i = 1; i <= 6; i++) {
+        var v1 = document.getElementById('v' + i + '_1') ? document.getElementById('v' + i + '_1').value : '';
+        var v2 = document.getElementById('v' + i + '_2') ? document.getElementById('v' + i + '_2').value : '';
+        var v3 = document.getElementById('v' + i + '_3') ? document.getElementById('v' + i + '_3').value : '';
+        var puestos = document.getElementById('v' + i + '_puestos') ? document.getElementById('v' + i + '_puestos').value : '3';
+
+        payload['v' + i] = v1 + "," + v2 + "," + v3;
+        payload['p' + i] = puestos;
+      }
+
+      enviarPeticion(payload, function(res) {
+        var msg = (res && res.message) ? res.message : ("¡Válida " + numValida + " guardada correctamente!");
+        mostrarAlerta(msg, "success", 4000);
+        cargarResultadosGuardados();
+        cargarDatosCarreras();
+        cargarDatosTicketsAudit();
+      });
+    }
+
+    function reiniciarJornada() {
+      mostrarAlerta("Reiniciando y archivando jornada...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({ action: 'reiniciarJornada' }, function(res) {
+        if (res && res.success) {
+          var msg = res.message || "¡Jornada reiniciada!";
+          mostrarAlerta(msg, "success", 4000);
+          localStorage.removeItem('macuare_resultados_cache');
+          mapaResultadosGlobal = {};
+          for (var i = 1; i <= 6; i++) {
+            if (document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = '';
+            if (document.getElementById('v' + i + '_2')) document.getElementById('v' + i + '_2').value = '';
+            if (document.getElementById('v' + i + '_3')) document.getElementById('v' + i + '_3').value = '';
+            if (document.getElementById('v' + i + '_puestos')) document.getElementById('v' + i + '_puestos').value = '3';
+          }
+          cargarDatosCarreras();
+          cargarDatosTicketsAudit();
+        } else {
+          mostrarAlerta("Error al procesar el reinicio.", "error", 4000);
+        }
+      });
+    }
+
+    function registrarNuevoEjemplar() {
+      var numero = document.getElementById('nuevoNumero').value;
+      var ejemplar = document.getElementById('nuevoEjemplar').value;
+      if (!numero || !ejemplar) {
+        mostrarAlerta("Falta número o nombre del ejemplar.", "error", 4000);
+        return;
+      }
+      apiCache.clear();
+      enviarPeticion({
+        action: 'guardarCarrera',
+        hipodromo: document.getElementById('nuevoHipodromo').value,
+        valida: document.getElementById('nuevaValida').value,
+        reunion: document.getElementById('nuevaReunion').value,
+        fecha: document.getElementById('nuevaFecha').value,
+        hora: document.getElementById('nuevaHora').value,
+        distancia: document.getElementById('nuevaDistancia').value,
+        numero: numero,
+        ejemplar: ejemplar,
+        estado: document.getElementById('nuevoEstado').value
+      }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Registrado!", "success", 4000);
+        document.getElementById('nuevoNumero').value = '';
+        document.getElementById('nuevoEjemplar').value = '';
+        cargarDatosCarreras();
+      });
+    }
+
+    function retirarEjemplar(carrera, numero) {
+      mostrarAlerta("Retirando ejemplar...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({ action: 'retirarEjemplar', carrera: carrera, numero: numero }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Retirado con éxito!", "success", 4000);
+        cargarDatosCarreras();
+      });
+    }
+
+    function cargarDatosCarreras() {
+      var tbody = document.getElementById('tablaCarrerasBody');
+      if (tbody.innerHTML.indexOf('Cargando') === -1 && tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Cargando...</td></tr>';
+      }
+
+      enviarPeticion({ action: 'getCarreras' }, function(resCarreras) {
+        enviarPeticion({ action: 'getResultados' }, function(resResultados) {
+          var mapaGanadores = {};
+          if (resResultados && resResultados.success && resResultados.data) {
+            resResultados.data.forEach(function(row) {
+              var nombreValida = String(row.Valida || "").trim();
+              if (nombreValida !== "") {
+                mapaGanadores[nombreValida] = {
+                  1: String(row.CaballoGanador || "").trim(),
+                  2: String(row['2do lugar'] || "").trim(),
+                  3: String(row['3er lugar'] || "").trim(),
+                  puestos: String(row.puestosValidos || '3').trim(),
+                  tieneResultado: (String(row.CaballoGanador || "") !== "" || String(row['2do lugar'] || "") !== "")
+                };
+              }
+            });
+          }
+
+          if (resCarreras && resCarreras.success && resCarreras.data && resCarreras.data.length > 0) {
+            var datosValidos = resCarreras.data.filter(item => {
+              if (!item.numero || String(item.numero).trim() === "" || Number(item.numero) <= 0) return false;
+              var nombreValidaItem = String(item.carrera || "").trim();
+              return nombreValidaItem.toLowerCase() === subTabValidaActual.toLowerCase();
+            });
+
+            if (datosValidos.length > 0) {
+              var html = '';
+              datosValidos.forEach(item => {
+                var estadoStr = String(item.estado || "").toLowerCase();
+                var fh = (item.fecha || item.hora) ? ((item.fecha || '') + ' ' + (item.hora || '')) : 'N/D';
+                var numCaballo = String(item.numero).trim();
+                var ganadoresValida = mapaGanadores[item.carrera];
+                var resultadoTexto = '-';
+                var clasePodio = '';
+                var validaTieneResultado = false;
+                var puestosValidosTexto = ganadoresValida ? ganadoresValida.puestos : '3';
+                var reunionVal = item.reunion || '-';
+
+                if (ganadoresValida) {
+                  validaTieneResultado = ganadoresValida.tieneResultado;
+                  if (ganadoresValida[1] === numCaballo) { resultadoTexto = '1er Lugar'; clasePodio = 'fila-podio-1'; }
+                  else if (ganadoresValida[2] === numCaballo) { resultadoTexto = '2do Lugar'; clasePodio = 'fila-podio-2'; }
+                  else if (ganadoresValida[3] === numCaballo) { resultadoTexto = '3er Lugar'; clasePodio = 'fila-podio-3'; }
+                }
+
+                var badgeEstado = estadoStr.includes('retirado') ? '<span class="badge-retirado">Ret.</span>' : (validaTieneResultado ? '<span class="badge-corrio">CORRIO</span>' : '<span class="badge-activo">Activo</span>');
+                var botonAccion = !estadoStr.includes('retirado') ? (validaTieneResultado ? '<button class="btn-danger" disabled>RET.</button>' : '<button class="btn-danger" onclick="confirmarAccion(\'retirar_ejemplar\', \'¿Retirar al ejemplar N° ' + item.numero + '?\', function() { retirarEjemplar(\'' + item.carrera + '\', \'' + item.numero + '\'); })">RET.</button>') : 'N/A';
+                
+                html += '<tr class="' + clasePodio + '"><td><b>' + item.hipodromo + '</b></td><td><b>' + item.carrera + '</b></td><td>' + reunionVal + '</td><td>' + fh + '</td><td>' + item.distancia + '</td><td>' + item.numero + '</td><td>' + item.ejemplar + '</td><td><b>' + resultadoTexto + '</b></td><td>' + badgeEstado + '</td><td><span style="color: var(--accent); font-weight: bold;">' + puestosValidosTexto + ' P.</span></td><td>' + botonAccion + '</td></tr>';
+              });
+              tbody.innerHTML = html;
+            } else {
+              tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">No hay ejemplares registrados para la ' + subTabValidaActual + '.</td></tr>';
+            }
+          } else {
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">Sin registros.</td></tr>';
+          }
+        });
+      });
+    }
+
+    function cargarDatosPagoMovil() {
+      if (isTypingRefPago) return;
+      var tbody = document.getElementById('tablaPagoMovilBody');
+
+      enviarPeticion({ action: 'getResultados' }, function(resRes) {
+        if (resRes && resRes.success && resRes.data) {
+          mapaResultadosGlobal = {};
+          resRes.data.forEach(function(row) {
+            var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+            var match = nombreValida.match(/(\d+)/);
+            if (match) {
+              var idx = parseInt(match[1]);
+              if (idx >= 1 && idx <= 6) {
+                var c1 = String(row.CaballoGanador || "").trim();
+                var c2 = String(row['2do lugar'] || "").trim();
+                var c3 = String(row['3er lugar'] || "").trim();
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                mapaResultadosGlobal[idx] = {
+                  ganadores: [c1, c2, c3].filter(c => c !== ""),
+                  puestos: puestosValidos
+                };
+              }
+            }
+          });
+        }
+
+        enviarPeticion({ action: 'getTickets' }, function(res) {
+          if (res && res.success && res.data && res.data.length > 0) {
+            var ganadores = res.data.filter(function(t) {
+              var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+              return estatus.includes('ganador') && !estatus.includes('pagado');
+            });
+
+            if (ganadores.length > 0) {
+              var html = '';
+              ganadores.forEach(function(t) {
+                var idTicket = t.ID_Ticket || t.id || '';
+                var vendedor = t.Vendedor || t.vendedor || 'N/D';
+                var jugador = t.Jugador || t.jugador || 'N/D';
+                
+                var banco = t.Banco_PagoMovil || t.banco_PagoMovil || t.Banco || 'N/D';
+                var telefono = t.Telefono_PagoMovil || t.telefono_PagoMovil || t.Telefono || 'N/D';
+                var cedula = t.Cedula_PagoMovil || t.cedula_PagoMovil || t.Cedula || 'N/D';
+
+                var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+                var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+                var premioCalculado = 0;
+
+                subCombos.forEach(function(combo) {
+                  var estaViva = evaluarCombinacionViva(combo);
+                  if (estaViva) {
+                    var matchMonto = combo.match(/\(Bs\s*([\d\.,]+)\)/i) || combo.match(/\(([\d\.,]+)\)/);
+                    var montoCombo = 500;
+                    if (matchMonto && matchMonto[1]) {
+                      montoCombo = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 500;
+                    }
+                    premioCalculado += (montoCombo * 10);
+                  }
+                });
+
+                if (subCombos.length === 0 || premioCalculado === 0) {
+                  premioCalculado = parseFloat(t.PremioPotencial || t.premioPotencial || t.montoPremio || 0);
+                  if (isNaN(premioCalculado) || premioCalculado === 0) {
+                    var montoGen = parseFloat(t.Monto || t.monto || 0);
+                    premioCalculado = montoGen * 10;
+                  }
+                }
+
+                html += '<tr>' +
+                  '<td><b>' + idTicket + '</b></td>' +
+                  '<td>' + vendedor + '</td>' +
+                  '<td>' + jugador + '</td>' +
+                  '<td style="color: var(--accent); font-weight: bold;">' + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                  '<td>' + banco + '</td>' +
+                  '<td>' + telefono + '</td>' +
+                  '<td>' + cedula + '</td>' +
+                  '<td><input type="text" id="ref_pago_' + idTicket + '" placeholder="N° Referencia" onfocus="isTypingRefPago = true;" onblur="isTypingRefPago = false;"></td>' +
+                  '<td><button class="btn-accent" style="padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0;" onclick="procesarPagoMovil(\'' + idTicket + '\')">✅ Pagado</button></td>' +
+                '</tr>';
+              });
+              tbody.innerHTML = html;
+            } else {
+              tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No hay tickets ganadores pendientes.</td></tr>';
+            }
+          } else {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Sin tickets.</td></tr>';
+          }
+        });
+      });
+    }
+
+    function procesarPagoMovil(idTicket) {
+      isTypingRefPago = false;
+      var inputRef = document.getElementById('ref_pago_' + idTicket);
+      var referencia = inputRef ? inputRef.value.trim() : '';
+      if (!referencia) {
+        mostrarAlerta("Ingrese el número de referencia del pago móvil.", "error", 4000);
+        return;
+      }
+      mostrarAlerta("Registrando pago...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({ action: 'marcarPagado', idTicket: idTicket, referencia: referencia }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Pago registrado!", "success", 4000);
+        cargarDatosPagoMovil();
+      });
+    }
+
+    function cargarBalancesCajas() {
+      var tbody = document.getElementById('tablaCajasBody');
+      enviarPeticion({ action: 'getCajas' }, function(res) {
+        if (res && res.success && res.data && res.data.length > 0) {
+          var html = '';
+          res.data.forEach(item => {
+            var taquilla = item.taquilla || item.Taquilla || 'N/D';
+            var ventas = item.ventas || item.Ventas || '0,00';
+            var premios = item.premios || item.Premios || '0,00';
+            var laQueda = item.laQueda || item.LaQueda || '0,00';
+            var comision = item.comision || item.Comision || '0,00';
+            var netoStr = item.neto || item.Neto || item['Neto a Entregar'] || '0,00';
+            var referencia = item.referenciaPago || item.referencia || item['Referencia Pago'] || 'Sin Ref';
+            var estatus = item.estatus || item.Estatus || 'PENDIENTE';
+            var estatusLower = String(estatus).toLowerCase();
+            
+            var netoNum = parseFloat(String(netoStr).replace(/\./g, '').replace(',', '.')) || 0;
+            var estiloNeto = netoNum < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
+
+            var badgeEstatus = estatusLower.includes('verificado') ? '<span class="badge-verificado">✓ VERIF.</span>' : (estatusLower.includes('aprobado') ? '<span class="badge-activo">Aprob.</span>' : '<span class="badge-retirado" style="background: rgba(212, 175, 55, 0.2); color: var(--accent);">Pend.</span>');
+            var btnAprobar = estatusLower.includes('aprobado') || estatusLower.includes('verificado') ? '<button class="btn-danger" disabled style="background: rgba(100, 116, 139, 0.3);">Listo</button>' : '<button class="btn-accent" style="padding: 5px 8px; font-size: 0.75rem; width: auto; margin: 0;" onclick="confirmarAccion(\'aprobar_balance\', \'¿Aprobar balance de ' + taquilla + '?\', function() { aprobarBalanceTaquilla(\'' + taquilla + '\'); })">Aprobar</button>';
+
+            html += '<tr><td><b>' + taquilla + '</b></td><td>' + ventas + '</td><td>' + premios + '</td><td>' + laQueda + '</td><td>' + comision + '</td><td style="' + estiloNeto + '">' + netoStr + '</td><td style="color: var(--text-muted); font-size: 0.8rem;">' + referencia + '</td><td>' + badgeEstatus + '</td><td>' + btnAprobar + '</td></tr>';
+          });
+          tbody.innerHTML = html;
+        } else {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Sin balances registrados.</td></tr>';
+        }
+      });
+    }
+
+    function aprobarBalanceTaquilla(taquilla) {
+      mostrarAlerta("Aprobando balance...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({ action: 'aprobarBalance', taquilla: taquilla }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Balance aprobado!", "success", 4000);
+        cargarBalancesCajas();
+      });
+    }
+
+    function cargarDatosEstadisticas() {
+      enviarPeticion({ action: 'getCajas' }, function(resCajas) {
+        enviarPeticion({ action: 'obtenerHistorialMetricas' }, function(resHistorial) {
+          var listaDatos = [];
+          if (resCajas && resCajas.success && resCajas.data) listaDatos = listaDatos.concat(resCajas.data);
+          if (resHistorial && resHistorial.success && resHistorial.data) listaDatos = listaDatos.concat(resHistorial.data);
+          else if (Array.isArray(resHistorial)) listaDatos = listaDatos.concat(resHistorial);
+          renderizarEstadisticas(listaDatos);
+        });
+      });
+    }
+
+    function renderizarEstadisticas(dataList) {
+      var tbody = document.getElementById('tablaEstadisticasBody');
+      var tVentas = 0, tPremios = 0, tComisiones = 0, tNeto = 0;
+
+      if (dataList && dataList.length > 0) {
+        var html = '';
+        dataList.forEach(item => {
+          var ventas = parseFloat(item.ventas || item.Ventas || 0) || 0;
+          var premios = parseFloat(item.premios || item.Premios || 0) || 0;
+          var comision = parseFloat(item.comision || item.Comision || 0) || 0;
+          var neto = parseFloat(item.netoSistema || item.neto || item.Neto || 0) || 0;
+
+          tVentas += ventas; tPremios += premios; tComisiones += comision; tNeto += neto;
+          var netoStr = item.netoSistema || item.neto || item.Neto || '0,00';
+          var estiloNetoFila = neto < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
+
+          html += '<tr><td>' + (item.taquilla || item.Taquilla || 'N/D') + '</td><td>' + (item.ventas || item.Ventas || '0,00') + '</td><td>' + (item.premios || item.Premios || '0,00') + '</td><td>' + (item.laQueda || item.LaQueda || '0,00') + '</td><td>' + (item.comision || item.Comision || '0,00') + '</td><td style="' + estiloNetoFila + '">' + netoStr + '</td></tr>';
+        });
+        tbody.innerHTML = html;
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Sin registros.</td></tr>';
+      }
+
+      document.getElementById('statVentas').innerText = tVentas.toLocaleString('es-VE', {minimumFractionDigits: 2});
+      document.getElementById('statPremios').innerText = tPremios.toLocaleString('es-VE', {minimumFractionDigits: 2});
+      document.getElementById('statComisiones').innerText = tComisiones.toLocaleString('es-VE', {minimumFractionDigits: 2});
+      var elStatNeto = document.getElementById('statNeto');
+      elStatNeto.innerText = tNeto.toLocaleString('es-VE', {minimumFractionDigits: 2});
+      elStatNeto.style.color = tNeto < 0 ? 'var(--error-text)' : '#81c784';
+    }
+
+    function cargarDatosTicketsAudit() {
+      enviarPeticion({ action: 'getResultados' }, function(resRes) {
+        if (resRes && resRes.success && resRes.data) {
+          mapaResultadosGlobal = {};
+          resRes.data.forEach(function(row) {
+            var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+            var match = nombreValida.match(/(\d+)/);
+            if (match) {
+              var idx = parseInt(match[1]);
+              if (idx >= 1 && idx <= 6) {
+                var c1 = String(row.CaballoGanador || "").trim();
+                var c2 = String(row['2do lugar'] || "").trim();
+                var c3 = String(row['3er lugar'] || "").trim();
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                mapaResultadosGlobal[idx] = {
+                  ganadores: [c1, c2, c3].filter(c => c !== ""),
+                  puestos: puestosValidos
+                };
+              }
+            }
+          });
+        }
+
+        enviarPeticion({ action: 'getTickets' }, function(res) {
+          window._cacheTickets = (res && res.success && res.data) ? res.data : [];
+          renderizarTicketsAudit(window._cacheTickets);
+        });
+      });
+    }
+
+    let searchDebounce = null;
+    function filtrarTicketsAudit() {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        if (!window._cacheTickets) return;
+        var textoBusqueda = document.getElementById('filtroBusquedaTicket').value.toLowerCase();
+        var estatusFiltro = document.getElementById('filtroEstatusTicket').value.toLowerCase();
+
+        var filtrados = window._cacheTickets.filter(function(t) {
+          var idTicket = String(t.ID_Ticket || t.id || "").toLowerCase();
+          var vendedor = String(t.Vendedor || t.vendedor || "").toLowerCase();
+          var jugador = String(t.Jugador || t.jugador || "").toLowerCase();
+          var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+
+          var cumpleTexto = !textoBusqueda || idTicket.includes(textoBusqueda) || vendedor.includes(textoBusqueda) || jugador.includes(textoBusqueda);
+          
+          var cumpleEstatus = !estatusFiltro;
+          if (estatusFiltro) {
+            if (estatusFiltro === 'perdido') {
+              cumpleEstatus = estatus.includes('perdido') || estatus.includes('perdedor');
+            } else {
+              cumpleEstatus = estatus.includes(estatusFiltro);
+            }
+          }
+          return cumpleTexto && cumpleEstatus;
+        });
+        renderizarTicketsAudit(filtrados);
+      }, 200);
+    }
+
+    function evaluarCombinacionViva(subComboStr) {
+      var partesLimpias = subComboStr.split('(')[0];
+      var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
+
+      for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
+        var resultadoInfo = mapaResultadosGlobal[validaIdx];
+        if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
+          var caballoJugado = caballosElegidos[validaIdx - 1];
+          if (caballoJugado) {
+            var puestosPermitidos = resultadoInfo.puestos;
+            var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+            if (!ganadoresValidos.includes(caballoJugado)) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function renderizarTicketsAudit(dataList) {
+      var tbody = document.getElementById('tablaTicketsAuditBody');
+      var vivos = 0, perdidos = 0, pagados = 0, maxRiesgo = 0;
+
+      if (dataList && dataList.length > 0) {
+        var html = '';
+        dataList.forEach(function(t) {
+          var estatus = String(t.Estatus || t.estatus || "Pendiente").trim();
+          var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+          
+          var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+          
+          var combosVivosHtml = [];
+          var montoTotalRiesgoTicket = 0;
+
+          subCombos.forEach(function(combo) {
+            var estaViva = evaluarCombinacionViva(combo);
+            var matchMonto = combo.match(/\(Bs\s*([\d\.,]+)\)/i) || combo.match(/\(([\d\.,]+)\)/);
+            var montoCombo = 500;
+            if (matchMonto && matchMonto[1]) {
+              montoCombo = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 500;
+            }
+
+            var factorPago = 10;
+            var premioComboBruto = montoCombo * factorPago;
+
+            if (estaViva) {
+              combosVivosHtml.push('<span style="color: var(--success-text);">✓ ' + combo + '</span>');
+              montoTotalRiesgoTicket += premioComboBruto;
+            } else {
+              combosVivosHtml.push('<span style="text-decoration: line-through; color: var(--error-text); opacity: 0.7;">✗ ' + combo + ' (Caída)</span>');
+            }
+          });
+
+          if (subCombos.length === 0) {
+            var montoGen = parseFloat(t.Monto || t.monto) || 0;
+            montoTotalRiesgoTicket = montoGen * 10;
+            combosVivosHtml.push(seleccionStr);
+          }
+
+          var estatusLower = estatus.toLowerCase();
+          
+          if (estatusLower.includes('vivo') || estatusLower.includes('pendiente')) { 
+            if (montoTotalRiesgoTicket > 0) {
+              vivos++;
+              maxRiesgo += montoTotalRiesgoTicket;
+            } else {
+              perdidos++;
+            }
+          }
+          else if (estatusLower.includes('perdido') || estatusLower.includes('perdedor')) { 
+            perdidos++; 
+          }
+          else if (estatusLower.includes('ganador') || estatusLower.includes('pagado')) { 
+            pagados++; 
+            maxRiesgo += montoTotalRiesgoTicket;
+          }
+
+          var badgeClass = (estatusLower.includes('perdido') || estatusLower.includes('perdedor') || montoTotalRiesgoTicket === 0) ? 'badge-retirado' : (estatusLower.includes('ganador') || estatusLower.includes('pagado') ? 'badge-corrio' : 'badge-pendiente');
+          var estatusVisual = (montoTotalRiesgoTicket === 0 && !estatusLower.includes('perdido')) ? 'Perdido (Sin Combos Vivos)' : estatus;
+
+          html += '<tr>' +
+            '<td><b>' + (t.ID_Ticket || t.id || 'N/D') + '</b></td>' +
+            '<td>' + (t.Vendedor || t.vendedor || 'N/D') + '</td>' +
+            '<td>' + (t.Jugador || t.jugador || 'N/D') + '</td>' +
+            '<td class="col-seleccion-6">' + combosVivosHtml.join('<br>') + '</td>' +
+            '<td>' + (parseFloat(t.Monto || t.monto) || 0).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+            '<td style="font-weight: bold; color: var(--accent);">' + montoTotalRiesgoTicket.toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+            '<td><span class="' + badgeClass + '">' + estatusVisual + '</span></td>' +
+          '</tr>';
+        });
+        tbody.innerHTML = html;
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Sin tickets.</td></tr>';
+      }
+
+      document.getElementById('statTicketsVivos').innerText = vivos;
+      document.getElementById('statTicketsPerdidos').innerText = perdidos;
+      document.getElementById('statTicketsPagados').innerText = pagados;
+      document.getElementById('statPremioMaxRiesgo').innerText = maxRiesgo.toLocaleString('es-VE', {minimumFractionDigits: 2});
+    }
+
+    function cargarUsuariosSistema() {
+      var tbody = document.getElementById('tablaUsuariosBody');
+      enviarPeticion({ action: 'getUsuarios' }, function(res) {
+        if (res && res.success && res.data && res.data.length > 0) {
+          var html = '';
+          res.data.forEach(u => {
+            var badgeEst = u.estado === 'Suspendido' ? '<span class="badge-retirado">Susp.</span>' : '<span class="badge-activo">Activo</span>';
+            var btnSuspenderActivar = u.estado === 'Suspendido' 
+              ? '<button style="background:#2e7d32; padding:4px 8px; font-size:0.75rem; width:auto; margin:0;" onclick="confirmarAccion(\'activar\', \'¿Activar usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Activo\'); })">Activar</button>'
+              : '<button class="btn-danger" onclick="confirmarAccion(\'suspender\', \'¿Suspender usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Suspendido\'); })">Susp.</button>';
+            var btnEditar = '<button class="btn-accent" style="padding:4px 8px; font-size:0.75rem; width:auto; margin:0 4px 0 0;" onclick="prepararEdicionUsuario(\'' + u.id + '\', \'' + u.usuario + '\', \'' + u.password + '\', \'' + u.rol + '\', \'' + u.estado + '\')">Edit</button>';
+
+            html += '<tr><td><b>' + u.id + '</b></td><td>' + u.usuario + '</td><td>' + u.password + '</td><td>' + u.rol + '</td><td>' + badgeEst + '</td><td>' + btnEditar + btnSuspenderActivar + '</td></tr>';
+          });
+          tbody.innerHTML = html;
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Sin usuarios.</td></tr>';
+        }
+      });
+    }
+
+    function guardarUsuarioSistema() {
+      var editId = document.getElementById('editUserId').value;
+      var usuario = document.getElementById('usrNombre').value.trim();
+      var password = document.getElementById('usrPassword').value.trim();
+      if (!usuario || !password) {
+        mostrarAlerta("Complete usuario y contraseña.", "error", 4000);
+        return;
+      }
+      mostrarAlerta("Guardando usuario...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({
+        action: 'guardarUsuario',
+        id: editId,
+        usuario: usuario,
+        password: password,
+        rol: document.getElementById('usrRol').value,
+        saldo: 0,
+        estado: document.getElementById('usrEstado').value
+      }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Usuario guardado!", "success", 4000);
+        limpiarFormUsuario();
+        cargarUsuariosSistema();
+      });
+    }
+
+    function prepararEdicionUsuario(id, usuario, password, rol, estado) {
+      document.getElementById('editUserId').value = id;
+      document.getElementById('usrNombre').value = usuario;
+      document.getElementById('usrPassword').value = password;
+      document.getElementById('usrRol').value = rol;
+      document.getElementById('usrEstado').value = estado;
+      document.getElementById('tituloFormUsuario').innerText = "Editar Usuario: " + usuario;
+      document.getElementById('btnCancelarEdicion').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function limpiarFormUsuario() {
+      document.getElementById('editUserId').value = '';
+      document.getElementById('usrNombre').value = '';
+      document.getElementById('usrPassword').value = '';
+      document.getElementById('usrRol').value = 'vendedor';
+      document.getElementById('usrEstado').value = 'Activo';
+      document.getElementById('tituloFormUsuario').innerText = "Crear / Editar Usuario";
+      document.getElementById('btnCancelarEdicion').classList.add('hidden');
+    }
+
+    function cambiarEstadoUsuario(id, nuevoEstado) {
+      mostrarAlerta("Actualizando estatus...", "success", 0);
+      apiCache.clear();
+      enviarPeticion({ action: 'cambiarEstadoUsuario', id: id, estado: nuevoEstado }, function(res) {
+        mostrarAlerta((res && res.message) ? res.message : "¡Actualizado!", "success", 4000);
+        cargarUsuariosSistema();
+      });
+    }
+  </script>
+</body>
+</html>

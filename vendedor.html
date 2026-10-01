@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taquilla Macuare Hípico - Vendedor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #eef2ed;
+            color: #1f2e20;
+            padding: 15px;
+        }
+        /* Pantalla de Login */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #142417;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .login-card {
+            background-color: #ffffff;
+            padding: 35px;
+            border-radius: 12px;
+            border: 2px solid #c59b27;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        .login-card h2 {
+            color: #73502b;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+            border: 2px solid #bfae91;
+            color: #1f2e20;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .login-card input:focus {
+            border-color: #235224;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(35, 82, 36, 0.2);
+        }
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background-color: #235224;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .login-card button:hover {
+            background-color: #183c19;
+        }
+        .error-msg {
+            color: #a93226;
+            font-size: 13px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Estructura Principal */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 6px solid #235224;
+            border-bottom: 3px solid #c59b27;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 {
+            color: #142417;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .btn-logout {
+            background-color: #a93226;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .btn-logout:hover {
+            background-color: #87251d;
+        }
+
+        /* Sistema de Pestañas (Tabs) Centradas */
+        .tabs-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+            background-color: #ffffff;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #d4c5a9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            background-color: #eae5d9;
+            color: #4a584b;
+            border: 1px solid #bfae91;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            background-color: #dfd7c5;
+            color: #142417;
+        }
+        .tab-btn.active {
+            background-color: #235224;
+            color: #ffffff;
+            border-color: #183c19;
+            box-shadow: 0 2px 8px rgba(35, 82, 36, 0.3);
+        }
+
+        /* Contenido de Pestañas */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #d4c5a9;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        }
+        .card h2 {
+            color: #73502b;
+            font-size: 18px;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #e2dac9;
+            padding-bottom: 8px;
+            font-weight: 700;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 500px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #3b4d3d;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        input, select {
+            width: 100%;
+            padding: 11px 12px;
+            background-color: #ffffff;
+            border: 2px solid #bfae91;
+            color: #1f2e20;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        input::placeholder {
+            color: #8c8270;
+            opacity: 1;
+            text-transform: none;
+            font-weight: normal;
+        }
+        input:focus, select:focus {
+            border-color: #235224;
+            outline: none;
+            background-color: #fdfffb;
+            box-shadow: 0 0 0 3px rgba(35, 82, 36, 0.15);
+        }
+        .btn-primary {
+            background-color: #235224;
+            color: #ffffff;
+            border: none;
+            padding: 13px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .btn-primary:hover {
+            background-color: #183c19;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e8e2d3;
+            font-size: 15px;
+            color: #2c3a2e;
+            font-weight: 600;
+        }
+        .summary-row span:last-child {
+            font-weight: 700;
+        }
+        .text-green { color: #1e5620; font-weight: 700; }
+        .text-red { color: #a93226; font-weight: 700; }
+        .text-yellow { color: #9a7b0c; font-weight: 700; }
+        .row-neto { border-top: 2px dashed #bfae91; padding-top: 12px; margin-top: 8px; font-weight: bold; font-size: 16px; color: #1e5620; }
+
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+            border: 2px solid #bfae91;
+            border-radius: 6px;
+            background-color: #ffffff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e2dac9;
+        }
+        th {
+            background-color: #142417;
+            color: #d4c5a9;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 700;
+        }
+        tr:hover {
+            background-color: #f4f0e6;
+        }
+        .seccion-pago-ingreso {
+            border-top: 2px dashed #c59b27;
+            padding-top: 18px;
+            margin-top: 18px;
+        }
+
+        tr.fila-alerta-tope {
+            background-color: rgba(197, 155, 39, 0.2) !important;
+            border-left: 5px solid #c59b27 !important;
+            border-top: 1px solid #c59b27 !important;
+            border-bottom: 1px solid #c59b27 !important;
+        }
+        tr.fila-alerta-tope:hover {
+            background-color: rgba(197, 155, 39, 0.3) !important;
+        }
+
+        /* Insignias de Estatus Estilizadas */
+        .badge-estatus {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            text-align: center;
+        }
+        .badge-pendiente { background-color: #fcf3cf; color: #9a7b0c; border: 1px solid #f9e79f; }
+        .badge-pagado { background-color: #d4efdf; color: #196f3d; border: 1px solid #a3e4d7; }
+        .badge-ganado { background-color: #d4efdf; color: #1e5620; border: 1px solid #27ae60; font-weight: 800; }
+        .badge-perdido { background-color: #fadbd8; color: #c0392b; border: 1px solid #f5b7b1; }
+
+        .btn-accion {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 4px;
+        }
+        .btn-print { background-color: #eae5d9; color: #73502b; border: 1px solid #bfae91; }
+        .btn-print:hover { background-color: #73502b; color: #ffffff; }
+        .btn-wa { background-color: #1e8449; color: #fff; }
+        .btn-wa:hover { background-color: #145a32; }
+
+        #ticketImpresion {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: 58mm auto;
+                margin: 0mm;
+            }
+            body {
+                background: #fff;
+                color: #000;
+                margin: 0;
+                padding: 0;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #ticketImpresion, #ticketImpresion * {
+                visibility: visible;
+            }
+            #ticketImpresion {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 48mm;
+                margin-left: 0mm;
+                font-family: 'Courier New', Courier, monospace, 'Arial', sans-serif;
+                font-size: 9px;
+                font-weight: 900 !important;
+                line-height: 1.2;
+                padding: 2mm 1mm;
+                color: #000;
+                background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-after: always;
+            }
+            
+            #ticketImpresion * {
+                font-weight: 900 !important;
+                color: #000 !important;
+            }
+
+            .t-center { text-align: center; }
+            .t-bold { font-weight: 900 !important; }
+            .t-sm { font-size: 9px; }
+            .t-xs { font-size: 8px; }
+            .t-md { font-size: 11px; }
+            
+            .t-label { font-weight: 900 !important; }
+            .t-value { font-weight: 900 !important; }
+
+            .t-divider { 
+                margin: 3px 0; 
+                border-top: 1.5px solid #000;
+            }
+            .t-footer {
+                text-align: left;
+                font-size: 8px;
+                font-weight: 900 !important;
+                margin-top: 4px;
+                line-height: 1.25;
+            }
+        }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,36,23,0.7); justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
+        .modal-content { background: #ffffff; padding: 30px; border-radius: 12px; width: 100%; max-width: 420px; border: 2px solid #c59b27; box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+        .modal-content h3 { color: #73502b; margin-top: 0; text-align: center; border-bottom: 2px solid #e2dac9; padding-bottom: 10px; margin-bottom: 18px; font-weight: 700;}
+        .dato-banco { background: #f9f6ef; padding: 12px; border-radius: 6px; border: 1px solid #bfae91; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .dato-banco span { font-family: monospace; color: #1e5620; font-size: 1.1rem; font-weight: 700; }
+        .btn-copiar-todo { background: #c59b27; color: #142417; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; margin-bottom: 18px; font-size: 1rem; transition: background 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-copiar-todo:hover { background: #b08720; }
+        .btn-cerrar-modal { background: #a93226; color: #fff; margin-top: 15px; width: 100%; padding: 11px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .btn-cerrar-modal:hover { background: #87251d; }
+    </style>
+</head>
+<body>
+
+    <div id="ticketImpresion">
+        <div class="t-center t-bold" style="font-size: 10px;">MACUARE HÍPICO ONLINE</div>
+        <div class="t-center t-sm"><span class="t-label">Taquilla:</span> <span id="pTaquilla" class="t-value">Principal</span></div>
+        <div class="t-center t-sm"><span class="t-label">Hipódromo:</span> <span id="pHipodromo" class="t-value">La Rinconada</span></div>
+        <div class="t-divider"></div>
+        <div><span class="t-label">Ticket ID:</span> <span id="pTicketId" class="t-value">TICK-0000</span></div>
+        <div><span class="t-label">Fecha:</span> <span id="pFecha" class="t-value">--/--/----</span> <span class="t-label">Hora:</span> <span id="pHora" class="t-value">--:--</span></div>
+        <div><span class="t-label">Jugador:</span> <span id="pJugador" class="t-value">---</span></div>
+        <div class="t-divider"></div>
+        <div class="t-center t-bold">SELECCIONES VÁLIDAS (6)</div>
+        
+        <div id="pContenedorMultiples" style="margin: 9px 0;"></div>
+
+        <div class="t-divider"></div>
+        <div><span class="t-label">Total Apuesta:</span> Bs <span id="pMonto" class="t-value">0.00</span></div>
+        <div><span class="t-label">Premio Est. Total (10x):</span> Bs <span id="pPremio" class="t-value">0.00</span></div>
+        <div class="t-divider"></div>
+        <div class="t-footer">
+            • <b>Regla Puestos:</b><br>
+            &nbsp;&nbsp;• 1-9 inscritos = 1 puesto<br>
+            &nbsp;&nbsp;• 10-11 inscritos = 2 puestos<br>
+            &nbsp;&nbsp;• 12-20 inscritos = 3 puestos.<br>
+            • Ticket Pierde Si La Selección No Entra en Regla De Puestos.<br>
+            • Retirado Corre Con El Siguiente Puesto.<br>
+            • Resultados Oficiales del INH O HINAVA.<br>
+            • Pagos De Tickets Ganadores Automáticos Al Finalizar La Jornada.<br>
+            <div class="t-center t-bold" style="margin-top: 4px; font-size: 8px;">¡Conserve su ticket! Válido por el día.</div>
+        </div>
+    </div>
+
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>🐎 Acceso Vendedor</h2>
+            <form onsubmit="intentarLogin(event)">
+                <input type="text" id="loginUsuario" placeholder="Usuario" required autocomplete="username">
+                <input type="password" id="loginPassword" placeholder="Contraseña" required autocomplete="current-password">
+                <button type="submit">Ingresar</button>
+                <div id="loginError" class="error-msg">Usuario o contraseña incorrectos.</div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Capas de seguridad anti-inspección y anti-copia
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
+            if (usuarioActivo) {
+                document.getElementById("loginOverlay").style.display = "none";
+                document.getElementById("labelVendedor").innerText = "Vendedor: " + usuarioActivo;
+                consultarCajaVendedor(usuarioActivo);
+                cargarControlInternoLocal();
+            }
+            cargarFechasHipodromos();
+        });
+
+        let fechasHipodromosMap = {};
+        function cargarFechasHipodromos() {
+            fetch(`${URL_WEB_APP}?action=getCareers`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        fechasHipodromosMap = {};
+                        data.data.forEach(c => {
+                            let hipo = (c.Hipodromo || c.hipodromo || "").trim();
+                            let fecha = (c.Fecha || c.fecha || "").trim();
+                            if (hipo && fecha) {
+                                fechasHipodromosMap[hipo] = fecha;
+                            }
+                        });
+                    }
+                })
+                .catch(err => console.error("Error al cargar fechas de carreras:", err));
+        }
+
+        function intentarLogin(e) {
+            e.preventDefault();
+            let user = document.getElementById("loginUsuario").value.trim().toUpperCase();
+            let pass = document.getElementById("loginPassword").value.trim();
+            let errorDiv = document.getElementById("loginError");
+
+            if (user === "ADMIN") {
+                errorDiv.innerText = "Esta cuenta es de administrador. Use admin.html";
+                errorDiv.style.display = "block";
+                return;
+            }
+
+            if (user.length > 0 && pass.length > 0) {
+                localStorage.setItem("usuarioMacuareVendedor", user);
+                document.getElementById("loginOverlay").style.display = "none";
+                document.getElementById("labelVendedor").innerText = "Vendedor: " + user;
+                consultarCajaVendedor(user);
+                cargarControlInternoLocal();
+            } else {
+                errorDiv.innerText = "Por favor ingrese usuario y contraseña.";
+                errorDiv.style.display = "block";
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("usuarioMacuareVendedor");
+            window.location.reload();
+        }
+
+        function cambiarPestaña(evt, tabId) {
+            let contents = document.getElementsByClassName("tab-content");
+            for (let c of contents) {
+                c.classList.remove("active");
+            }
+            let buttons = document.getElementsByClassName("tab-btn");
+            for (let b of buttons) {
+                b.classList.remove("active");
+            }
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+
+    <header>
+        <h1>🐎 Taquilla Macuare Hípico</h1>
+        <div class="user-info">
+            <span id="labelVendedor" style="font-weight: 700; color: #73502b; font-size: 15px;">Vendedor: --</span>
+            <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="cambiarPestaña(event, 'tabResumenCaja')">📊 Resumen de Caja</button>
+        <button class="tab-btn" onclick="cambiarPestaña(event, 'tabVentas')">🎟️ Ventas Multi-Jugada</button>
+        <button class="tab-btn" onclick="cambiarPestaña(event, 'tabMisTickets')">📋 Mis Tickets</button>
+        <button class="tab-btn" onclick="cambiarPestaña(event, 'tabControlPagos')">💳 Control de Pagos</button>
+    </div>
+
+    <div id="tabResumenCaja" class="tab-content active">
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+            <h2>Resumen de Caja Diario</h2>
+            <div class="summary-row">
+                <span>Tickets Emitidos:</span>
+                <span id="txtTickets" style="font-size: 16px;">0</span>
+            </div>
+            <div class="summary-row">
+                <span>Ventas Totales:</span>
+                <span id="txtVentas" class="text-green" style="font-size: 16px;">Bs 0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Premios Pagados:</span>
+                <span id="txtPremios" class="text-red" style="font-size: 16px;">Bs 0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>La Queda:</span>
+                <span id="txtLaQueda" class="text-yellow" style="font-size: 16px;">Bs 0.00</span>
+            </div>
+            <div class="summary-row" style="border-bottom: none;">
+                <span>Ganancia Vendedor (30%):</span>
+                <span id="txtGanancia" class="text-yellow" style="font-size: 16px;">Bs 0.00</span>
+            </div>
+            <div class="summary-row row-neto" style="border-bottom: none;">
+                <span>A Enviar a la Banca:</span>
+                <span id="txtEnviarBanca" style="font-size: 17px;">Bs 0.00</span>
+            </div>
+            
+            <button class="btn-primary" style="margin-top: 25px; background-color: #eae5d9; color: #1f2e20; border: 1px solid #bfae91;" onclick="actualizarCaja()">Actualizar Caja</button>
+            <button class="btn-primary" style="margin-top: 12px; background-color: #c59b27; color: #142417;" onclick="abrirModalCuadre()">Cuadrar Caja (Datos Bancarios)</button>
+        </div>
+    </div>
+
+    <div id="tabVentas" class="tab-content">
+        <div class="card" style="max-width: 750px; margin: 0 auto;">
+            <h2>1. Datos Generales y del Jugador</h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nombre del Jugador</label>
+                    <input type="text" id="nombreJugador" placeholder="Nombre completo del jugador">
+                </div>
+                <div class="form-group">
+                    <label style="color: #1e5620;">🐎 Hipódromo</label>
+                    <select id="hipodromoSeleccion">
+                        <option value="La Rinconada">La Rinconada</option>
+                        <option value="Valencia">Valencia</option>
+                    </select>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 25px;">2. Agregar Combinaciones al Mismo Ticket</h2>
+            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Agregue tantas jugadas como desee para este cliente. Si alguna excede el cupo, todo el boleto se bloqueará para su revisión.</p>
+
+            <div class="form-grid">
+                <div class="form-group"><input type="text" id="v1" placeholder="1ª Válida (Ej: 12)"></div>
+                <div class="form-group"><input type="text" id="v2" placeholder="2ª Válida"></div>
+                <div class="form-group"><input type="text" id="v3" placeholder="3ª Válida"></div>
+                <div class="form-group"><input type="text" id="v4" placeholder="4ª Válida"></div>
+                <div class="form-group"><input type="text" id="v5" placeholder="5ª Válida"></div>
+                <div class="form-group"><input type="text" id="v6" placeholder="6ª Válida"></div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Monto Individual de esta Jugada (Bs)</label>
+                    <input type="number" id="montoJugadaIndividual" placeholder="0.00">
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button type="button" class="btn-primary" style="background-color: #eae5d9; color: #73502b; border: 1px solid #bfae91;" onclick="agregarFilaJugada()">➕ Agregar Jugada a la Lista</button>
+                </div>
+            </div>
+
+            <div class="table-container" style="margin-top: 15px; margin-bottom: 15px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Combinación de Válidas</th>
+                            <th>Monto (Bs)</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaJugadasAcumuladas">
+                        <tr><td colspan="4" style="text-align: center; color: #777;">No hay combinaciones agregadas todavía.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary-row" style="background: #f9f6ef; padding: 12px; border-radius: 6px; margin-bottom: 18px; border: 1px solid #bfae91;">
+                <span>Total Acumulado del Boleto:</span>
+                <span id="txtMontoTotalAcumulado" class="text-green" style="font-size: 17px;">Bs 0.00</span>
+            </div>
+
+            <h2 style="margin-top: 25px;">3. Datos de Pago y Cierre</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Cédula del Jugador</label>
+                    <input type="text" id="cedulaPago" placeholder="Ej: 19466062">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono Pago Móvil</label>
+                    <input type="text" id="telefonoPago" placeholder="Ej: 04149443028">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Banco Destino del Jugador</label>
+                <select id="bancoPremioDestino">
+                    <option value="">Seleccione Banco del Jugador...</option>
+                    <option value="0102 - Banco de Venezuela S.C.A.">0102 - Banco de Venezuela</option>
+                    <option value="0104 - Venezolano de Crédito, S.A.">0104 - Venezolano de Crédito</option>
+                    <option value="0105 - Banco Mercantil, C.A.">0105 - Banco Mercantil</option>
+                    <option value="0108 - Banco Provincial, S.A.">0108 - Banco Provincial</option>
+                    <option value="0115 - Banco Exterior, C.A.">0115 - Banco Exterior</option>
+                    <option value="0128 - Banco Caroní, C.A.">0128 - Banco Caroní</option>
+                    <option value="0134 - Banesco Banco Universal, C.A.">0134 - Banesco</option>
+                    <option value="0137 - Banco Sofitasa, C.A.">0137 - Banco Sofitasa</option>
+                    <option value="0138 - Banco Plaza, C.A.">0138 - Banco Plaza</option>
+                    <option value="0151 - Fondo Común, C.A. Banco Universal">0151 - Fondo Común</option>
+                    <option value="0156 - 100% Banco, C.A. Banco Universal">0156 - 100% Banco</option>
+                    <option value="0157 - Del Sur Banco Universal, C.A.">0157 - Del Sur</option>
+                    <option value="0163 - Banco Tesoro, C.A. Banco Universal">0163 - Banco del Tesoro</option>
+                    <option value="0166 - Banco Agrícola de Venezuela, C.A.">0166 - Banco Agrícola</option>
+                    <option value="0168 - Bancrecer, S.A. Banco Universal">0168 - Bancrecer</option>
+                    <option value="0169 - Mi Banco, Banco Microfinanciero, C.A.">0169 - Mi Banco</option>
+                    <option value="0171 - Banco Activo, C.A. Banco Universal">0171 - Banco Activo</option>
+                    <option value="0172 - Bicentenario Banco Universal, C.A.">0172 - Banco Bicentenario</option>
+                    <option value="0174 - Banplus Banco Universal, C.A.">0174 - Banplus</option>
+                    <option value="0175 - Banco Digital BFC, C.A.">0175 - BFC Banco Digital</option>
+                    <option value="0191 - Banco Nacional de Crédito, C.A. (BNC)">0191 - BNC</option>
+                </select>
+            </div>
+
+            <div class="seccion-pago-ingreso">
+                <label style="color: #73502b; font-weight: bold; margin-bottom: 10px; font-size: 14px;">📥 Método de Pago de la Apuesta</label>
+                <div class="form-group">
+                    <label>¿Cómo cancela el cliente?</label>
+                    <select id="metodoPagoApuesta" onchange="cambiarMetodoPago(this.value)">
+                        <option value="PagoMovil">Pago Móvil</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Punto">Punto de Venta</option>
+                    </select>
+                </div>
+                <div class="form-group" id="bloqueReferenciaIngreso">
+                    <label>Número de Referencia del Pago Móvil</label>
+                    <input type="text" id="referenciaPago" placeholder="Ej: 123456">
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="registrarJugadaMultiples()" style="margin-top: 25px; font-size: 17px; background-color: #235224;">🎟️ Emitir Boleto Único Consolidado</button>
+        </div>
+    </div>
+
+    <div id="tabMisTickets" class="tab-content">
+        <div class="card" style="max-width: 950px; margin: 0 auto;">
+            <h2>🎫 Mis Tickets Emitidos</h2>
+            <div class="table-container" style="max-height: 500px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Ticket</th>
+                            <th>Hipódromo</th>
+                            <th>Jugador</th>
+                            <th>Combinación(es)</th>
+                            <th>Monto</th>
+                            <th>Premio Real / Potencial</th>
+                            <th>Estatus</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaMisTickets">
+                        <tr><td colspan="8" style="text-align: center; color: #777;">Cargando tickets...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn-primary" style="margin-top: 18px; background-color: #eae5d9; color: #1f2e20; border: 1px solid #bfae91;" onclick="actualizarCaja()">🔄 Actualizar Listado</button>
+        </div>
+    </div>
+
+    <div id="tabControlPagos" class="tab-content">
+        <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <h2>Control Local de Pagos</h2>
+            <div class="table-container" style="max-height: 400px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Jugador / Cédula</th>
+                            <th>Método / Ref</th>
+                            <th>Teléfono</th>
+                            <th>Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaControlInterno">
+                        <tr><td colspan="4" style="text-align: center; color: #777;">Sin registros aún</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn-primary" style="margin-top: 18px; background-color: #eae5d9; color: #73502b; border: 1px solid #bfae91; font-size: 14px; padding: 11px;" onclick="limpiarControlLocal()">Limpiar Tabla Local</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalCuadre">
+        <div class="modal-content">
+            <h3>Datos Bancarios de la Banca</h3>
+            <p style="font-size: 0.95rem; color: #4a584b; text-align: center; margin-bottom: 18px; font-weight: 600;">
+                Monto a transferir: <strong id="montoTransferirModal" style="color: #1e5620; font-size: 1.2rem;">Bs 0.00</strong>
+            </p>
+            <button class="btn-copiar-todo" onclick="copiarDatosCompletos()">📋 COPIAR LOS DATOS BANCARIOS</button>
+            <div style="font-size: 0.85rem; margin-bottom: 4px; color: #4a584b; font-weight: bold;">Banco:</div>
+            <div class="dato-banco"><span id="bancoTxt">Banesco (0134)</span></div>
+            <div style="font-size: 0.85rem; margin-bottom: 4px; color: #4a584b; font-weight: bold;">Teléfono Pago Móvil:</div>
+            <div class="dato-banco"><span id="telfTxt">04149443028</span></div>
+            <div style="font-size: 0.85rem; margin-bottom: 4px; color: #4a584b; font-weight: bold;">Cédula / RIF:</div>
+            <div class="dato-banco"><span id="cedulaTxt">V-19466062</span></div>
+            <div class="form-group" style="margin-top: 18px;">
+                <label style="color: #73502b; font-weight: bold;">Número de Referencia de su Pago:</label>
+                <input type="text" id="refPagoBanca" placeholder="Ej: 98765432">
+            </div>
+            <button class="btn-primary" style="background-color: #235224; color: #ffffff; margin-top: 8px;" onclick="enviarPagoRealizado()">✅ PAGO REALIZADO</button>
+            <button class="btn-cerrar-modal" onclick="cerrarModalCuadre()">Cerrar Ventana</button>
+        </div>
+    </div>
+
+    <script>
+        let listaJugadasActuales = [];
+        let indicesJugadasConTopeExcedido = [];
+
+        function agregarFilaJugada() {
+            let v1 = document.getElementById("v1").value.trim();
+            let v2 = document.getElementById("v2").value.trim();
+            let v3 = document.getElementById("v3").value.trim();
+            let v4 = document.getElementById("v4").value.trim();
+            let v5 = document.getElementById("v5").value.trim();
+            let v6 = document.getElementById("v6").value.trim();
+            let monto = parseFloat(document.getElementById("montoJugadaIndividual").value) || 0;
+
+            if (!v1 || !v2 || !v3 || !v4 || !v5 || !v6) {
+                alert("Debe completar los 6 ejemplares de esta jugada.");
+                return;
+            }
+            if (monto <= 0) {
+                alert("Ingrese un monto válido para esta jugada.");
+                return;
+            }
+
+            let combinacion = `${v1} - ${v2} - ${v3} - ${v4} - ${v5} - ${v6}`;
+            
+            listaJugadasActuales.push({
+                combinacion: combinacion,
+                monto: monto
+            });
+
+            document.getElementById("v1").value = "";
+            document.getElementById("v2").value = "";
+            document.getElementById("v3").value = "";
+            document.getElementById("v4").value = "";
+            document.getElementById("v5").value = "";
+            document.getElementById("v6").value = "";
+            document.getElementById("montoJugadaIndividual").value = "";
+
+            indicesJugadasConTopeExcedido = [];
+            actualizarTablaJugadasAcumuladas();
+        }
+
+        function editarJugadaTemporal(index) {
+            let jugada = listaJugadasActuales[index];
+            let nuevoMontoStr = prompt(`Modificar monto para la combinación:\n${jugada.combinacion}\n\nIngrese el nuevo monto en Bs:`, jugada.monto);
+            if (nuevoMontoStr !== null) {
+                let nuevoMonto = parseFloat(nuevoMontoStr);
+                if (isNaN(nuevoMonto) || nuevoMonto <= 0) {
+                    alert("Monto inválido.");
+                    return;
+                }
+                listaJugadasActuales[index].monto = nuevoMonto;
+                indicesJugadasConTopeExcedido = indicesJugadasConTopeExcedido.filter(i => i !== index);
+                actualizarTablaJugadasAcumuladas();
+            }
+        }
+
+        function eliminarJugadaTemporal(index) {
+            listaJugadasActuales.splice(index, 1);
+            indicesJugadasConTopeExcedido = indicesJugadasConTopeExcedido
+                .filter(i => i !== index)
+                .map(i => i > index ? i - 1 : i);
+            actualizarTablaJugadasAcumuladas();
+        }
+
+        function actualizarTablaJugadasAcumuladas() {
+            let tbody = document.getElementById("tablaJugadasAcumuladas");
+            if (listaJugadasActuales.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">No hay combinaciones agregadas todavía.</td></tr>`;
+                document.getElementById("txtMontoTotalAcumulado").innerText = "Bs 0.00";
+                return;
+            }
+
+            let html = "";
+            let totalGeneral = 0;
+            listaJugadasActuales.forEach((j, idx) => {
+                totalGeneral += j.monto;
+                let esFilaAlerta = indicesJugadasConTopeExcedido.includes(idx);
+                let claseFila = esFilaAlerta ? 'fila-alerta-tope' : '';
+                let etiquetaAlerta = esFilaAlerta ? ' <span style="color:#9a7b0c; font-weight:bold; font-size:12px;">⭐ [EXCEDE CUPO - AJUSTAR]</span>' : '';
+
+                html += `<tr class="${claseFila}">
+                    <td><b>#${idx + 1}</b></td>
+                    <td><code>${j.combinacion}</code>${etiquetaAlerta}</td>
+                    <td class="text-green">Bs ${j.monto.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                    <td>
+                        <button type="button" class="btn-accion" style="background:#c59b27; color:#142417;" onclick="editarJugadaTemporal(${idx})">✏️ Editar</button>
+                        <button type="button" class="btn-accion" style="background:#a93226; color:#fff;" onclick="eliminarJugadaTemporal(${idx})">❌ Quitar</button>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById("txtMontoTotalAcumulado").innerText = "Bs " + totalGeneral.toLocaleString('es-VE', {minimumFractionDigits: 2});
+        }
+
+        function cambiarMetodoPago(metodo) {
+            let bloqueRef = document.getElementById("bloqueReferenciaIngreso");
+            bloqueRef.style.display = (metodo === "PagoMovil") ? "block" : "none";
+        }
+
+        function registrarJugadaMultiples() {
+            let hipodromo = document.getElementById("hipodromoSeleccion").value;
+
+            let fechaCarreraStr = fechasHipodromosMap[hipodromo];
+            if (fechaCarreraStr) {
+                let hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                let fechaCarrera = new Date(fechaCarreraStr + "T00:00:00");
+                
+                if (!isNaN(fechaCarrera.getTime()) && fechaCarrera < hoy) {
+                    alert(`⚠️ No se puede emitir el ticket. La fecha programada para ${hipodromo} (${fechaCarreraStr}) ya ha vencido.`);
+                    return;
+                }
+            }
+
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
+            let jugadorNombre = document.getElementById("nombreJugador").value.trim() || "Anónimo";
+
+            let cedulaPago = document.getElementById("cedulaPago").value.trim();
+            let telefono = document.getElementById("telefonoPago").value.trim();
+            let bancoPremio = document.getElementById("bancoPremioDestino").value;
+
+            if (!cedulaPago || !telefono || !bancoPremio) {
+                alert("Debe ingresar la Cédula, Teléfono y Banco de Pago Móvil del jugador.");
+                return;
+            }
+
+            let metodoPago = document.getElementById("metodoPagoApuesta").value;
+            let referenciaLocal = "";
+
+            if (metodoPago === "PagoMovil") {
+                referenciaLocal = document.getElementById("referenciaPago").value.trim();
+                if (!referenciaLocal) {
+                    alert("Por favor ingrese el número de referencia del Pago Móvil.");
+                    return;
+                }
+            } else {
+                referenciaLocal = metodoPago.toUpperCase();
+            }
+
+            let combinacionesValidasConsolidadas = listaJugadasActuales.map(j => `${j.combinacion} (Bs ${j.monto})`).join(" | ");
+            let montoTotalValidas = listaJugadasActuales.reduce((sum, j) => sum + j.monto, 0);
+
+            let url = `${URL_WEB_APP}?action=registrarTicketControlado&vendedorId=${encodeURIComponent(vendedorId)}&jugador=${encodeURIComponent(jugadorNombre)}&hipodromo=${encodeURIComponent(hipodromo)}&combinacion=${encodeURIComponent(combinacionesValidasConsolidadas)}&monto=${encodeURIComponent(montoTotalValidas)}&banco=${encodeURIComponent(bancoPremio)}&telefono=${encodeURIComponent(telefono)}&cedulaPago=${encodeURIComponent(cedulaPago)}&referencia=`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        let ticketData = {
+                            ID_Ticket: data.ticketId,
+                            Vendedor: vendedorId,
+                            Hipodromo: hipodromo,
+                            Jugador: jugadorNombre,
+                            Telefono: telefono,
+                            JugadasLista: [...listaJugadasActuales],
+                            Monto: montoTotalValidas,
+                            PremioPotencial: montoTotalValidas * 10,
+                            Estatus: 'Pendiente',
+                            Seleccion6: combinacionesValidasConsolidadas,
+                            Token: data.ticketId
+                        };
+
+                        agregarTicketAlCacheLocal(vendedorId, ticketData);
+
+                        guardarControlInternoLocal({
+                            jugador: `${cedulaPago} - ${jugadorNombre}`,
+                            metodoRef: `${metodoPago} (${referenciaLocal})`,
+                            telefono: telefono,
+                            monto: montoTotalValidas
+                        });
+
+                        listaJugadasActuales = [];
+                        indicesJugadasConTopeExcedido = [];
+                        actualizarTablaJugadasAcumuladas();
+                        document.getElementById("nombreJugador").value = "";
+                        document.getElementById("cedulaPago").value = "";
+                        document.getElementById("telefonoPago").value = "";
+                        document.getElementById("bancoPremioDestino").value = "";
+                        document.getElementById("referenciaPago").value = "";
+
+                        consultarCajaVendedor(vendedorId);
+                        
+                        prepararEImprimirTicket(ticketData);
+
+                    } else {
+                        manejarRespuestaServidorConTope(data);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error de conexión al registrar el boleto.");
+                });
+        }
+
+        function manejarRespuestaServidorConTope(data) {
+            if (data.requiereFraccionamiento || data.mensaje) {
+                indicesJugadasConTopeExcedido = [];
+                
+                let textoServidorCompleto = "";
+                if (data.mensaje) textoServidorCompleto += " " + data.mensaje;
+                
+                let listaAfectadasServidor = [];
+                let fuentesArray = [data.detallesAfectados, data.combinacionesAfectadas, data.combinacionAfectada];
+                fuentesArray.forEach(fuente => {
+                    if (Array.isArray(fuente)) {
+                        fuente.forEach(item => {
+                            if (typeof item === 'object' && item !== null) {
+                                let val = item.combinacion || item.comb || item.texto || JSON.stringify(item);
+                                listaAfectadasServidor.push(String(val));
+                            } else if (item) {
+                                listaAfectadasServidor.push(String(item));
+                            }
+                        });
+                    } else if (typeof fuente === 'string' && fuente.trim() !== "") {
+                        listaAfectadasServidor.push(fuente);
+                    }
+                });
+
+                let matchesCorchetes = data.mensaje ? data.mensaje.match(/\[([\d\s\-]+)\]/g) : null;
+                if (matchesCorchetes) {
+                    matchesCorchetes.forEach(m => listaAfectadasServidor.push(m));
+                }
+
+                let limpiarSecuenciaNumerica = (str) => String(str).replace(/\D/g, "");
+
+                listaJugadasActuales.forEach((j, idx) => {
+                    let secuenciaJugada = limpiarSecuenciaNumerica(j.combinacion);
+                    if (!secuenciaJugada) return;
+
+                    let estaAfectada = false;
+
+                    for (let afectada of listaAfectadasServidor) {
+                        let secuenciaAfectada = limpiarSecuenciaNumerica(afectada);
+                        if (secuenciaAfectada && (secuenciaJugada === secuenciaAfectada || secuenciaJugada.includes(secuenciaAfectada) || secuenciaAfectada.includes(secuenciaJugada))) {
+                            estaAfectada = true;
+                            break;
+                        }
+                    }
+
+                    if (!estaAfectada && textoServidorCompleto) {
+                        if (textoServidorCompleto.includes(j.combinacion) || textoServidorCompleto.replace(/\s+/g, '').includes(j.combinacion.replace(/\s+/g, ''))) {
+                            estaAfectada = true;
+                        }
+                    }
+
+                    if (estaAfectada) {
+                        indicesJugadasConTopeExcedido.push(idx);
+                    }
+                });
+
+                if (indicesJugadasConTopeExcedido.length === 0 && listaJugadasActuales.length > 0) {
+                    for (let i = 0; i < listaJugadasActuales.length; i++) {
+                        indicesJugadasConTopeExcedido.push(i);
+                    }
+                }
+
+                actualizarTablaJugadasAcumuladas();
+                alert("⚠️ " + (data.mensaje || "Se detectaron restricciones de cupo. Ningún ticket fue emitido. Las filas afectadas han sido resaltadas en la tabla."));
+            } else {
+                alert("⚠️ " + (data.mensaje || "Error al registrar el ticket"));
+            }
+        }
+
+        function prepararEImprimirTicket(t) {
+            document.getElementById('pTaquilla').innerText = t.Vendedor || t.vendedor || 'Taquilla';
+            document.getElementById('pHipodromo').innerText = t.Hipodromo || t.hipodromo || 'La Rinconada';
+            document.getElementById('pTicketId').innerText = t.ID_Ticket || t.TicketID || '---';
+            
+            let ahora = new Date();
+            document.getElementById('pFecha').innerText = ahora.toLocaleDateString();
+            document.getElementById('pHora').innerText = ahora.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+            document.getElementById('pJugador').innerText = t.Jugador || t.jugador || 'S/N';
+            let montoNum = Number(t.Monto || t.monto || 0);
+            document.getElementById('pMonto').innerText = montoNum.toFixed(2);
+            
+            let estatusCheck = String(t.Estatus || t.estatus || '').trim().toLowerCase();
+            
+            let premioImpresion = 0;
+            let premioBackendPrint = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
+
+            if (premioBackendPrint !== null && !isNaN(Number(premioBackendPrint))) {
+                premioImpresion = Number(premioBackendPrint);
+            } else if (estatusCheck.includes('ganad') || estatusCheck.includes('pagad')) {
+                let seleccionPrint = t.Seleccion6 || t.Combinacion || '';
+                let partesSubP = seleccionPrint.split(" | ");
+                let sumaGanadorasP = 0;
+                partesSubP.forEach(sub => {
+                    let subLower = sub.toLowerCase();
+                    if (!subLower.includes('[perdedor]') && !subLower.includes('[perdido]')) {
+                        let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                        if (matchM) {
+                            let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
+                            sumaGanadorasP += mSub;
+                        }
+                    }
+                });
+                premioImpresion = sumaGanadorasP > 0 ? sumaGanadorasP * 10 : montoNum * 10;
+            } else if (estatusCheck.includes('perdedor') || estatusCheck.includes('perdid')) {
+                premioImpresion = 0;
+            } else {
+                premioImpresion = montoNum * 10;
+            }
+
+            document.getElementById('pPremio').innerText = Number(premioImpresion).toFixed(2);
+            
+            let contenedor = document.getElementById('pContenedorMultiples');
+            contenedor.innerHTML = "";
+
+            let jugadasArray = t.JugadasLista || [];
+            
+            if (jugadasArray.length === 0 && (t.Seleccion6 || t.Combinacion)) {
+                let textoCrudo = t.Seleccion6 || t.Combinacion;
+                let partes = textoCrudo.split(" | ");
+                partes.forEach((p, idx) => {
+                    contenedor.innerHTML += `<div style="font-size: 9px; margin-bottom: 2px;"><b>#${idx+1}:</b> ${p}</div>`;
+                });
+            } else {
+                jugadasArray.forEach((j, idx) => {
+                    contenedor.innerHTML += `<div style="font-size: 9px; margin-bottom: 2px;"><b>#${idx+1}:</b> ${j.combinacion}<br><span style="font-size:8px;">Monto: Bs ${Number(j.monto).toFixed(2)}</span></div>`;
+                });
+            }
+
+            window.print();
+        }
+
+        function enviarTicketWhatsApp(idTicket, jugador, telefono, seleccion, monto, token, hipodromo, premioPotencial) {
+            let telfLimpio = (telefono || '').replace(/\D/g, '');
+            if (!telfLimpio) {
+                telfLimpio = "584149443028";
+            }
+
+            let enlaceEnVivo = `${URL_WEB_APP}?action=verTicket&token=${token || idTicket}`;
+            let mensaje = `🐎 *MACUARE HÍPICO ONLINE* 🐎\n\n` +
+                          `¡Hola *${jugador}*! 👋 Tu jugada ha sido registrada con éxito. ¡Mucho éxito en la jornada! 🏆\n\n` +
+                          `🏟️ *Hipódromo:* ${hipodromo || 'La Rinconada'}\n` +
+                          `🎟️ *ID Ticket:* ${idTicket}\n\n` +
+                          `🎯 *Tus Combinaciones:*\n${seleccion.replace(/ \| /g, '\n')}\n\n` +
+                          `💵 *Total Apuesta:* Bs ${Number(monto).toFixed(2)}\n` +
+                          `💰 *Premio Real / Estimado:* Bs ${Number(premioPotencial).toFixed(2)}\n\n` +
+                          `🌐 *Consulta tu estatus en vivo aquí:*\n${enlaceEnVivo}\n\n` +
+                          `📌 _Conserve este mensaje como comprobante de su jugada._`;
+
+            let urlWa = `https://api.whatsapp.com/send?phone=${telfLimpio}&text=${encodeURIComponent(mensaje)}`;
+            window.open(urlWa, '_blank');
+        }
+
+        function guardarControlInternoLocal(item) {
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "general";
+            let key = "macuare_control_" + vendedorId;
+            let registros = JSON.parse(localStorage.getItem(key)) || [];
+            registros.unshift(item);
+            localStorage.setItem(key, JSON.stringify(registros));
+            cargarControlInternoLocal();
+        }
+
+        function cargarControlInternoLocal() {
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "general";
+            let key = "macuare_control_" + vendedorId;
+            let registros = JSON.parse(localStorage.getItem(key)) || [];
+            let tbody = document.getElementById("tablaControlInterno");
+            if (registros.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Sin registros aún</td></tr>`;
+                return;
+            }
+            let html = "";
+            registros.forEach(r => {
+                html += `<tr>
+                    <td>${r.jugador}</td>
+                    <td><b>${r.metodoRef}</b></td>
+                    <td>${r.telefono}</td>
+                    <td class="text-green">Bs ${Number(r.monto).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function limpiarControlLocal() {
+            if (confirm("¿Desea limpiar la tabla de control interno de este dispositivo?")) {
+                let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "general";
+                localStorage.removeItem("macuare_control_" + vendedorId);
+                cargarControlInternoLocal();
+            }
+        }
+
+        let datosCajaActual = {};
+
+        function agregarTicketAlCacheLocal(vendedorId, nuevoTicket) {
+            let cacheKeyTickets = "macuare_tickets_" + vendedorId;
+            let ticketsActuales = JSON.parse(localStorage.getItem(cacheKeyTickets) || "[]");
+            ticketsActuales.unshift(nuevoTicket);
+            localStorage.setItem(cacheKeyTickets, JSON.stringify(ticketsActuales));
+            renderizarTablaTicketsUI(ticketsActuales, vendedorId);
+        }
+
+        function renderizarTablaTicketsUI(misTickets, vendedorId) {
+            document.getElementById("txtTickets").innerText = misTickets.length;
+            let tbodyTickets = document.getElementById("tablaMisTickets");
+            
+            if (misTickets.length === 0) {
+                tbodyTickets.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #777;">No hay tickets emitidos aún</td></tr>`;
+                return;
+            }
+
+            let htmlTickets = "";
+            misTickets.forEach(t => {
+                let idTicket = t.ID_Ticket || t.TicketID || t.ID || '---';
+                let hipodromo = t.Hipodromo || t.hipodromo || 'La Rinconada';
+                let jugador = t.Jugador || t.jugador || '---';
+                let telefono = t.Telefono || t.telefono || '';
+                let seleccion = t.Seleccion6 || t.Combinacion || t.combinacion || '---';
+                let monto = Number(t.Monto || t.monto || 0);
+                
+                let estatus = (t.Estatus || t.estatus || 'Pendiente').trim();
+                let token = t.Token || t.token || idTicket;
+                let estatusLower = estatus.toLowerCase();
+
+                let premioCalculado = 0;
+                let badgeClass = "badge-pendiente";
+                let estatusTexto = estatus;
+                let seleccionVisual = seleccion;
+
+                let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
+
+                if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
+                    badgeClass = "badge-perdido";
+                    estatusTexto = "❌ Perdedor";
+                    premioCalculado = 0;
+                    seleccionVisual = `<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${seleccion}</span> <span style="color:#c0392b; font-weight:bold; font-size:11px;">[PERDEDOR]</span>`;
+                } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
+                    badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganado";
+                    estatusTexto = estatusLower.includes('pagad') ? "✅ Pagado" : "🏆 ¡GANADOR!";
+                    
+                    if (premioBackend !== null && !isNaN(Number(premioBackend))) {
+                        premioCalculado = Number(premioBackend);
+                    } else {
+                        // 🌟 DESGLOSE EXACTO DE SUB-COMBINACIONES IGUAL QUE EL ADMIN
+                        let partesSub = seleccion.split(" | ");
+                        let sumaGanadoras = 0;
+                        let haySubCombValidables = false;
+                        let seleccionVisualPartes = [];
+
+                        partesSub.forEach(sub => {
+                            haySubCombValidables = true;
+                            let subLower = sub.toLowerCase();
+                            if (subLower.includes('[perdedor]') || subLower.includes('[perdido]')) {
+                                seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${sub}</span>`);
+                            } else {
+                                seleccionVisualPartes.push(`<span style="color: #1e5620; font-weight: bold;">${sub}</span>`);
+                                let matchMonto = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                                if (matchMonto) {
+                                    let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
+                                    sumaGanadoras += montoSub;
+                                }
+                            }
+                        });
+
+                        if (sumaGanadoras > 0) {
+                            premioCalculado = sumaGanadoras * 10;
+                            if (partesSub.length > 1) {
+                                seleccionVisual = seleccionVisualPartes.join(" | ");
+                            }
+                        } else if (!haySubCombValidables || partesSub.length <= 1) {
+                            premioCalculado = monto * 10;
+                        } else {
+                            premioCalculado = 0;
+                        }
+                    }
+                } else {
+                    badgeClass = "badge-pendiente";
+                    estatusTexto = "⏳ " + estatus;
+                    premioCalculado = monto * 10; // Potencial
+                }
+
+                let ticketObjStr = JSON.stringify({
+                    ID_Ticket: idTicket,
+                    Vendedor: vendedorId,
+                    Hipodromo: hipodromo,
+                    Jugador: jugador,
+                    Telefono: telefono,
+                    Seleccion6: seleccion,
+                    Monto: monto,
+                    PremioPotencial: premioCalculado,
+                    Estatus: estatus
+                }).replace(/"/g, '&quot;');
+
+                let premioFormateado = !isNaN(premioCalculado) ? premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2}) : "0.00";
+
+                htmlTickets += `<tr>
+                    <td><b>${idTicket}</b></td>
+                    <td><span style="color: #1e5620; font-weight: bold;">${hipodromo}</span></td>
+                    <td>${jugador}</td>
+                    <td><div style="font-size: 12px; line-height: 1.4; word-break: break-word;">${seleccionVisual}</div></td>
+                    <td class="text-green">Bs ${monto.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                    <td style="color: #73502b; font-weight: bold;">Bs ${premioFormateado}</td>
+                    <td><span class="badge-estatus ${badgeClass}">${estatusTexto}</span></td>
+                    <td>
+                        <button class="btn-accion btn-print" onclick="prepararEImprimirTicket(${ticketObjStr})">🖨️ Imprimir</button>
+                        <button class="btn-accion btn-wa" onclick="enviarTicketWhatsApp('${idTicket}', '${jugador}', '${telefono}', '${seleccion.replace(/'/g, "\\'")}', ${monto}, '${token}', '${hipodromo}', ${premioCalculado})">💬 WhatsApp</button>
+                    </td>
+                </tr>`;
+            });
+            tbodyTickets.innerHTML = htmlTickets;
+        }
+
+        function renderizarCajaUI(miCaja) {
+            if (!miCaja) return;
+            datosCajaActual = miCaja;
+            
+            let ventas = Number(miCaja.ventas !== undefined ? miCaja.ventas : (miCaja.Ventas !== undefined ? miCaja.Ventas : 0));
+            let premios = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
+            let laQueda = Number(miCaja.laQueda !== undefined ? miCaja.laQueda : (miCaja.LaQueda !== undefined ? miCaja.LaQueda : 0));
+            let comision = Number(miCaja.comision !== undefined ? miCaja.comision : (miCaja.Comision !== undefined ? miCaja.Comision : 0));
+            let enviarBanca = laQueda - comision;
+
+            let txtVentasEl = document.getElementById("txtVentas");
+            let txtPremiosEl = document.getElementById("txtPremios");
+            let txtLaQuedaEl = document.getElementById("txtLaQueda");
+            let txtGananciaEl = document.getElementById("txtGanancia");
+            let txtEnviarBancaEl = document.getElementById("txtEnviarBanca");
+
+            txtVentasEl.innerText = "Bs " + ventas.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            txtPremiosEl.innerText = "Bs " + premios.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            txtLaQuedaEl.innerText = "Bs " + laQueda.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            txtGananciaEl.innerText = "Bs " + comision.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            txtEnviarBancaEl.innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
+
+            if (laQueda < 0) {
+                txtLaQuedaEl.className = "text-red";
+            } else {
+                txtLaQuedaEl.className = "text-yellow";
+            }
+
+            if (enviarBanca < 0) {
+                txtEnviarBancaEl.className = "text-red";
+            } else {
+                txtEnviarBancaEl.className = "";
+                txtEnviarBancaEl.style.color = "#1e5620";
+            }
+
+            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
+            document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
+        }
+
+        function consultarCajaVendedor(vendedorId) {
+            let cacheKeyCaja = "macuare_caja_" + vendedorId;
+            let cacheKeyTickets = "macuare_tickets_" + vendedorId;
+
+            let urlCajas = `${URL_WEB_APP}?action=getCajas`;
+            fetch(urlCajas)
+                .then(res => res.json())
+                .then(data => {
+                    let miCaja = null;
+                    if (data.success && data.data) {
+                        miCaja = data.data.find(c => String(c.taquilla || c.Taquilla || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
+                    }
+                    
+                    if (miCaja) {
+                        localStorage.setItem(cacheKeyCaja, JSON.stringify(miCaja));
+                        renderizarCajaUI(miCaja);
+                    } else {
+                        localStorage.removeItem(cacheKeyCaja);
+                        renderizarCajaUI({ ventas: 0, premios: 0, laQueda: 0, comision: 0 });
+                    }
+                })
+                .catch(err => {
+                    console.warn("Aviso: No se pudo conectar a la nube para la caja.", err);
+                    let cajaLocal = localStorage.getItem(cacheKeyCaja);
+                    if (cajaLocal) {
+                        try { renderizarCajaUI(JSON.parse(cajaLocal)); } catch(e) {}
+                    }
+                });
+
+            let urlTickets = `${URL_WEB_APP}?action=getTickets`;
+            fetch(urlTickets)
+                .then(res => res.json())
+                .then(data => {
+                    let misTickets = [];
+                    if (data.success && data.data) {
+                        misTickets = data.data.filter(t => String(t.Vendedor || t.vendedor || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
+                        misTickets.reverse();
+                    }
+                    
+                    localStorage.setItem(cacheKeyTickets, JSON.stringify(misTickets));
+                    renderizarTablaTicketsUI(misTickets, vendedorId);
+                })
+                .catch(err => {
+                    console.warn("Aviso: No se pudieron actualizar tickets desde la nube.", err);
+                    let ticketsLocales = localStorage.getItem(cacheKeyTickets);
+                    if (ticketsLocales) {
+                        try { renderizarTablaTicketsUI(JSON.parse(ticketsLocales), vendedorId); } catch(e) {}
+                    }
+                });
+        }
+
+        function actualizarCaja() {
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
+            consultarCajaVendedor(vendedorId);
+            cargarFechasHipodromos();
+            alert("Caja y listados actualizados con éxito.");
+        }
+
+        function abrirModalCuadre() {
+            document.getElementById('modalCuadre').style.display = 'flex';
+        }
+
+        function cerrarModalCuadre() {
+            document.getElementById('modalCuadre').style.display = 'none';
+        }
+
+        function copiarDatosCompletos() {
+            let banco = document.getElementById("bancoTxt").innerText;
+            let telf = document.getElementById("telfTxt").innerText;
+            let cedula = document.getElementById("cedulaTxt").innerText;
+            let textoCompleto = `${banco}\n${telf}\n${cedula}`;
+
+            navigator.clipboard.writeText(textoCompleto).then(() => {
+                alert("¡Datos bancarios copiados al portapapeles!");
+            }).catch(err => console.error('Error al copiar: ', err));
+        }
+
+        function enviarPagoRealizado() {
+            let referencia = document.getElementById("refPagoBanca").value.trim();
+            if (!referencia) {
+                alert("Por favor ingrese el número de referencia del pago realizado.");
+                return;
+            }
+
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
+            let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
+            let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
+            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
+            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
+            let neto = laQueda - comision;
+
+            let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("¡Pago reportado con éxito a la administración!");
+                        document.getElementById("refPagoBanca").value = "";
+                        cerrarModalCuadre();
+                    } else {
+                        alert("Error al reportar pago: " + (data.mensaje || "Desconocido"));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error de conexión al enviar el reporte.");
+                });
+        }
+    </script>
+</body>
+</html>
