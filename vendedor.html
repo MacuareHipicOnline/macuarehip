@@ -930,7 +930,7 @@
                 referenciaLocal = metodoPago.toUpperCase();
             }
 
-            let combinacionesValidasConsolidadas = listaJugadasActuales.map(j => `${j.combinacion} (Bs ${j.monto})`).join(" | ");
+            let combinacionesValidasConsolidadas = listaJugadasActuales.map((j, i) => `#${i + 1}: ${j.combinacion} (Bs ${j.monto})`).join(" | ");
             let montoTotalValidas = listaJugadasActuales.reduce((sum, j) => sum + j.monto, 0);
 
             let url = `${URL_WEB_APP}?action=registrarTicketControlado&vendedorId=${encodeURIComponent(vendedorId)}&jugador=${encodeURIComponent(jugadorNombre)}&hipodromo=${encodeURIComponent(hipodromo)}&combinacion=${encodeURIComponent(combinacionesValidasConsolidadas)}&monto=${encodeURIComponent(montoTotalValidas)}&banco=${encodeURIComponent(bancoPremio)}&telefono=${encodeURIComponent(telefono)}&cedulaPago=${encodeURIComponent(cedulaPago)}&referencia=`;
@@ -1215,11 +1215,50 @@
 
                 let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
+                // Limpieza y formateo inteligente de sub-combinaciones con identificadores #1, #2, etc.
+                let partesSub = seleccion.split(" | ");
+                let partesFormateadas = [];
+                let sumaGanadoras = 0;
+                let haySubCombValidables = false;
+
+                partesSub.forEach((sub, subIdx) => {
+                    let subTrim = sub.trim();
+                    if (!subTrim) return;
+                    haySubCombValidables = true;
+
+                    let etiquetaSub = "";
+                    let subSinEtiqueta = subTrim;
+                    if (/^#\d+:/.test(subTrim)) {
+                        let matchEtiqueta = subTrim.match(/^(#\d+):\s*(.*)/);
+                        if (matchEtiqueta) {
+                            etiquetaSub = matchEtiqueta[1];
+                            subSinEtiqueta = matchEtiqueta[2];
+                        }
+                    } else {
+                        etiquetaSub = `#${subIdx + 1}`;
+                    }
+
+                    let subLower = subSinEtiqueta.toLowerCase();
+                    if (subLower.includes('[perdedor]') || subLower.includes('[perdido]')) {
+                        partesFormateadas.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
+                    } else {
+                        partesFormateadas.push(`<span style="color: #1e5620; font-weight: bold;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
+                        let matchMonto = subSinEtiqueta.match(/\(Bs\s*([\d\.,]+)\)/i) || subSinEtiqueta.match(/\(([\d\.,]+)\)/);
+                        if (matchMonto) {
+                            let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
+                            sumaGanadoras += montoSub;
+                        }
+                    }
+                });
+
+                if (partesFormateadas.length > 0) {
+                    seleccionVisual = partesFormateadas.join("<br>");
+                }
+
                 if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
                     badgeClass = "badge-perdido";
                     estatusTexto = "❌ Perdedor";
                     premioCalculado = 0;
-                    seleccionVisual = `<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${seleccion}</span> <span style="color:#c0392b; font-weight:bold; font-size:11px;">[PERDEDOR]</span>`;
                 } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
                     badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganado";
                     estatusTexto = estatusLower.includes('pagad') ? "✅ Pagado" : "🏆 ¡GANADOR!";
@@ -1227,31 +1266,8 @@
                     if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                         premioCalculado = Number(premioBackend);
                     } else {
-                        let partesSub = seleccion.split(" | ");
-                        let sumaGanadoras = 0;
-                        let haySubCombValidables = false;
-                        let seleccionVisualPartes = [];
-
-                        partesSub.forEach(sub => {
-                            haySubCombValidables = true;
-                            let subLower = sub.toLowerCase();
-                            if (subLower.includes('[perdedor]') || subLower.includes('[perdido]')) {
-                                seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${sub}</span>`);
-                            } else {
-                                seleccionVisualPartes.push(`<span style="color: #1e5620; font-weight: bold;">${sub}</span>`);
-                                let matchMonto = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
-                                if (matchMonto) {
-                                    let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
-                                    sumaGanadoras += montoSub;
-                                }
-                            }
-                        });
-
                         if (sumaGanadoras > 0) {
                             premioCalculado = sumaGanadoras * 10;
-                            if (partesSub.length > 1) {
-                                seleccionVisual = seleccionVisualPartes.join(" | ");
-                            }
                         } else if (!haySubCombValidables || partesSub.length <= 1) {
                             premioCalculado = monto * 10;
                         } else {
