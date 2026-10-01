@@ -1123,7 +1123,7 @@
                 telfLimpio = "584149443028";
             }
 
-            let enlaceEnVivo = `${URL_WEB_APP}?action=verTicket&token=${token || idTicket}`;
+            let enlaceEnVivo = `https://macuarehipiconline.github.io/macuarehip/ver-ticket.html?token=${token || idTicket}`;
             let mensaje = `🐎 *MACUARE HÍPICO ONLINE* 🐎\n\n` +
                           `¡Hola *${jugador}*! 👋 Tu jugada ha sido registrada con éxito. ¡Mucho éxito en la jornada! 🏆\n\n` +
                           `🏟️ *Hipódromo:* ${hipodromo || 'La Rinconada'}\n` +
@@ -1227,7 +1227,6 @@
                     if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                         premioCalculado = Number(premioBackend);
                     } else {
-                        // 🌟 DESGLOSE EXACTO DE SUB-COMBINACIONES IGUAL QUE EL ADMIN
                         let partesSub = seleccion.split(" | ");
                         let sumaGanadoras = 0;
                         let haySubCombValidables = false;
@@ -1262,7 +1261,7 @@
                 } else {
                     badgeClass = "badge-pendiente";
                     estatusTexto = "⏳ " + estatus;
-                    premioCalculado = monto * 10; // Potencial
+                    premioCalculado = monto * 10;
                 }
 
                 let ticketObjStr = JSON.stringify({
