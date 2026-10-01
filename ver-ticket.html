@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket en Vivo - Macuare Hípico</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #eef2ed;
+            color: #1f2e20;
+            padding: 15px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -18,49 +23,81 @@
         .ticket-card {
             background: #ffffff;
             width: 100%;
-            max-width: 400px;
-            padding: 25px;
+            max-width: 420px;
+            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid #c59b27;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             text-align: center;
         }
-        h2 { color: #1a73e8; margin-bottom: 5px; }
-        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
-        .ticket-info {
-            text-align: left;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #1a73e8;
+        h2 { 
+            color: #73502b; 
+            margin-bottom: 5px; 
+            font-size: 22px;
+            font-weight: 700;
         }
-        .ticket-info p {
-            margin: 8px 0;
-            font-size: 15px;
-            color: #333;
+        .subtitle { 
+            color: #5c6b5e; 
+            font-size: 13px; 
+            margin-bottom: 20px; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .status {
             display: inline-block;
-            padding: 6px 12px;
-            background: #e6f4ea;
-            color: #137333;
+            padding: 6px 14px;
+            background: #d4efdf;
+            color: #1e5620;
+            border: 1px solid #a3e4d7;
             border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 13px;
             margin-bottom: 20px;
         }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background: #25d366;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-            box-sizing: border-box;
+        .status.perdido {
+            background: #fadbd8;
+            color: #c0392b;
+            border: 1px solid #f5b7b1;
         }
-        .btn:hover { background: #20ba5a; }
+        .status.ganador {
+            background: #d4efdf;
+            color: #1e5620;
+            border: 1px solid #27ae60;
+        }
+        .ticket-info {
+            text-align: left;
+            background: #f9f6ef;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 5px solid #235224;
+            border-top: 1px solid #bfae91;
+            border-right: 1px solid #bfae91;
+            border-bottom: 1px solid #bfae91;
+        }
+        .ticket-info p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #2c3a2e;
+            word-break: break-word;
+        }
+        .ticket-info strong {
+            color: #3b4d3d;
+        }
+        .combinaciones-box {
+            background: #ffffff;
+            border: 1px solid #bfae91;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: #1f2e20;
+        }
     </style>
 </head>
 <body>
@@ -69,27 +106,144 @@
         <h2>Macuare Hípico</h2>
         <div class="subtitle">Comprobante de Jugada Digital</div>
         
-        <div class="status">Ticket Válido / En Vivo</div>
+        <div id="lblEstadoBadge" class="status">Cargando estatus...</div>
 
-        <div class="ticket-info" id="detalleTicket">
+        <div class="ticket-info">
             <p><strong>Nro Ticket:</strong> <span id="lblTicket">Cargando...</span></p>
+            <p><strong>Hipódromo:</strong> <span id="lblHipodromo">Cargando...</span></p>
             <p><strong>Vendedor:</strong> <span id="lblVendedor">Cargando...</span></p>
-            <p><strong>Jugada:</strong> <span id="lblJugada">Cargando...</span></p>
-            <p><strong>Monto:</strong> <span id="lblMonto">Cargando...</span></p>
+            <p><strong>Jugador:</strong> <span id="lblJugador">Cargando...</span></p>
+            <p><strong>Combinación(es):</strong></p>
+            <div class="combinaciones-box" id="lblJugada">Cargando combinaciones...</div>
+            <p style="margin-top: 12px;"><strong>Monto Apuesta:</strong> Bs <span id="lblMonto">0.00</span></p>
+            <p><strong>Premio Real / Estimado:</strong> <span id="lblPremio" style="color: #73502b; font-weight: bold;">Bs 0.00</span></p>
         </div>
-
-        <a href="https://macuarehipiconline.github.io/macuarehip/vendedor.html" class="btn">Ir al Sistema</a>
     </div>
 
     <script>
-        // Función para leer los datos que viajan por el enlace (URL)
-        const params = new URLSearchParams(window.location.search);
-        
-        document.getElementById('lblTicket').innerText = params.get('t') || 'N/A';
-        document.getElementById('lblVendedor').innerText = params.get('v') || 'General';
-        document.getElementById('lblJugada').innerText = params.get('j') || 'N/A';
-        document.getElementById('lblMonto').innerText = params.get('m') || 'N/A';
-    </script>
+        // Capas de seguridad anti-inspección y anti-copia
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
 
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            let tokenTicket = params.get('token') || params.get('t');
+
+            if (!tokenTicket) {
+                document.getElementById('lblTicket').innerText = "No especificado";
+                document.getElementById('lblEstadoBadge').innerText = "Ticket Inválido";
+                document.getElementById('lblEstadoBadge').className = "status perdido";
+                document.getElementById('lblJugada').innerText = "No se encontró el código del ticket en el enlace.";
+                return;
+            }
+
+            document.getElementById('lblTicket').innerText = tokenTicket;
+            buscarDetallesTicketNube(tokenTicket);
+        });
+
+        function buscarDetallesTicketNube(ticketId) {
+            fetch(`${URL_WEB_APP}?action=getTickets`)
+                .then(res => res.json())
+                .then(data => {
+                    let ticketEncontrado = null;
+                    if (data.success && data.data) {
+                        ticketEncontrado = data.data.find(t => {
+                            let tid = String(t.ID_Ticket || t.TicketID || t.ID || '').trim();
+                            return tid.toUpperCase() === String(ticketId).toUpperCase();
+                        });
+                    }
+
+                    if (ticketEncontrado) {
+                        pintarDatosTicket(ticketEncontrado);
+                    } else {
+                        document.getElementById('lblEstadoBadge').innerText = "Ticket No Encontrado";
+                        document.getElementById('lblEstadoBadge').className = "status perdido";
+                        document.getElementById('lblHipodromo').innerText = "---";
+                        document.getElementById('lblVendedor').innerText = "---";
+                        document.getElementById('lblJugador').innerText = "---";
+                        document.getElementById('lblJugada').innerText = "El ticket consultado no existe o fue eliminado.";
+                        document.getElementById('lblMonto').innerText = "0.00";
+                        document.getElementById('lblPremio').innerText = "Bs 0.00";
+                    }
+                })
+                .catch(err => {
+                    console.error("Error al consultar el ticket:", err);
+                    document.getElementById('lblEstadoBadge').innerText = "Error de Conexión";
+                    document.getElementById('lblEstadoBadge').className = "status perdido";
+                    document.getElementById('lblJugada').innerText = "No se pudo conectar con el servidor de resultados.";
+                });
+        }
+
+        function pintarDatosTicket(t) {
+            let hipodromo = t.Hipodromo || t.hipodromo || 'La Rinconada';
+            let vendedor = t.Vendedor || t.vendedor || 'General';
+            let jugador = t.Jugador || t.jugador || 'Anónimo';
+            let seleccion = t.Seleccion6 || t.Combinacion || t.combinacion || '---';
+            let monto = Number(t.Monto || t.monto || 0);
+            let estatus = String(t.Estatus || t.estatus || 'Pendiente').trim();
+            let estatusLower = estatus.toLowerCase();
+
+            document.getElementById('lblHipodromo').innerText = hipodromo;
+            document.getElementById('lblVendedor').innerText = vendedor;
+            document.getElementById('lblJugador').innerText = jugador;
+            document.getElementById('lblMonto').innerText = monto.toLocaleString('es-VE', {minimumFractionDigits: 2});
+
+            // Formatear selecciones múltiples detalladas
+            let partesSeleccion = seleccion.split(" | ");
+            let htmlSeleccion = "";
+            partesSeleccion.forEach((p, idx) => {
+                htmlSeleccion += `<div><b>#${idx+1}:</b> ${p}</div>`;
+            });
+            document.getElementById('lblJugada').innerHTML = htmlSeleccion;
+
+            let badgeEl = document.getElementById('lblEstadoBadge');
+            let premioCalculado = 0;
+
+            let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
+
+            if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
+                badgeEl.innerText = "❌ Ticket Perdedor";
+                badgeEl.className = "status perdido";
+                premioCalculado = 0;
+            } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
+                badgeEl.innerText = estatusLower.includes('pagad') ? "✅ Ticket Pagado" : "🏆 ¡TICKET GANADOR!";
+                badgeEl.className = "status ganador";
+
+                if (premioBackend !== null && !isNaN(Number(premioBackend))) {
+                    premioCalculado = Number(premioBackend);
+                } else {
+                    let sumaGanadoras = 0;
+                    partesSeleccion.forEach(sub => {
+                        let subLower = sub.toLowerCase();
+                        if (!subLower.includes('[perdedor]') && !subLower.includes('[perdido]')) {
+                            let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                            if (matchM) {
+                                let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
+                                sumaGanadoras += mSub;
+                            }
+                        }
+                    });
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                }
+            } else {
+                badgeEl.innerText = "⏳ Ticket Válido / En Vivo";
+                badgeEl.className = "status";
+                premioCalculado = monto * 10;
+            }
+
+            document.getElementById('lblPremio').innerText = "Bs " + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2});
+        }
+    </script>
 </body>
 </html>
