@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket en Vivo - Macuare Hípico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .ticket-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h2 { color: #1a73e8; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+        .ticket-info {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #1a73e8;
+        }
+        .ticket-info p {
+            margin: 8px 0;
+            font-size: 15px;
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #e6f4ea;
+            color: #137333;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #25d366;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+        .btn:hover { background: #20ba5a; }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-card">
+        <h2>Macuare Hípico</h2>
+        <div class="subtitle">Comprobante de Jugada Digital</div>
+        
+        <div class="status">Ticket Válido / En Vivo</div>
+
+        <div class="ticket-info" id="detalleTicket">
+            <p><strong>Nro Ticket:</strong> <span id="lblTicket">Cargando...</span></p>
+            <p><strong>Vendedor:</strong> <span id="lblVendedor">Cargando...</span></p>
+            <p><strong>Jugada:</strong> <span id="lblJugada">Cargando...</span></p>
+            <p><strong>Monto:</strong> <span id="lblMonto">Cargando...</span></p>
+        </div>
+
+        <a href="https://macuarehipiconline.github.io/macuarehip/vendedor.html" class="btn">Ir al Sistema</a>
+    </div>
+
+    <script>
+        // Función para leer los datos que viajan por el enlace (URL)
+        const params = new URLSearchParams(window.location.search);
+        
+        document.getElementById('lblTicket').innerText = params.get('t') || 'N/A';
+        document.getElementById('lblVendedor').innerText = params.get('v') || 'General';
+        document.getElementById('lblJugada').innerText = params.get('j') || 'N/A';
+        document.getElementById('lblMonto').innerText = params.get('m') || 'N/A';
+    </script>
+
+</body>
+</html>
