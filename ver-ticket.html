@@ -199,12 +199,27 @@
             document.getElementById('lblJugador').innerText = jugador;
             document.getElementById('lblMonto').innerText = monto.toLocaleString('es-VE', {minimumFractionDigits: 2});
 
-            // Formatear selecciones múltiples detalladas
             let partesSeleccion = seleccion.split(" | ");
             let htmlSeleccion = "";
+            let sumaGanadoras = 0;
+
             partesSeleccion.forEach((p, idx) => {
-                htmlSeleccion += `<div><b>#${idx+1}:</b> ${p}</div>`;
+                let subLower = p.toLowerCase();
+                let esPerdida = subLower.includes('[perdedor]') || subLower.includes('[perdido]');
+                
+                if (!esPerdida) {
+                    // Si no es perdedor, agregamos el check al lado y sumamos su premio proporcional
+                    let matchM = p.match(/\(Bs\s*([\d\.,]+)\)/i) || p.match(/\(([\d\.,]+)\)/);
+                    if (matchM) {
+                        let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
+                        sumaGanadoras += mSub;
+                    }
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p} <span style="color: #27ae60; font-weight: bold;">✅</span></div>`;
+                } else {
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p}</div>`;
+                }
             });
+            
             document.getElementById('lblJugada').innerHTML = htmlSeleccion;
 
             let badgeEl = document.getElementById('lblEstadoBadge');
@@ -223,23 +238,12 @@
                 if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                     premioCalculado = Number(premioBackend);
                 } else {
-                    let sumaGanadoras = 0;
-                    partesSeleccion.forEach(sub => {
-                        let subLower = sub.toLowerCase();
-                        if (!subLower.includes('[perdedor]') && !subLower.includes('[perdido]')) {
-                            let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
-                            if (matchM) {
-                                let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
-                                sumaGanadoras += mSub;
-                            }
-                        }
-                    });
                     premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
                 }
             } else {
                 badgeEl.innerText = "⏳ Ticket Válido / En Vivo";
                 badgeEl.className = "status";
-                premioCalculado = monto * 10;
+                premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
             }
 
             document.getElementById('lblPremio').innerText = "Bs " + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2});
