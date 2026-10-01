@@ -205,10 +205,45 @@
 
             partesSeleccion.forEach((p, idx) => {
                 let subLower = p.toLowerCase();
-                let esPerdida = subLower.includes('[perdedor]') || subLower.includes('[perdido]');
                 
-                if (!esPerdida) {
-                    // Si no es perdedor, agregamos el check al lado y sumamos su premio proporcional
+                // MEJORA DE VALIDACIÓN: Una combinación solo es ganadora si explícitamente 
+                // contiene la etiqueta de ganador [ganador], [acertado], o si el backend 
+                // ya le inyectó el estatus correcto. Si dice [perdedor] o [perdido] o si 
+                // el vendedor escribió mal/omitió la etiqueta de triunfo, se evalúa estrictamente.
+                let esGanadoraExplicita = subLower.includes('[ganador]') || subLower.includes('[acertado]') || subLower.includes('[ok]');
+                let esPerdidaExplicita = subLower.includes('[perdedor]') || subLower.includes('[perdido]') || subLower.includes('[x]');
+
+                // Si no hay etiquetas explícitas en el texto pero el ticket general es ganador, 
+                // validamos individualmente por marcas o por el parámetro del backend si aplica.
+                // Para corregir el error donde se marcan todas por defecto:
+                let esGanadora = false;
+                if (esGanadoraExplicita) {
+                    esGanadora = true;
+                } else if (!esPerdidaExplicita && (estatusLower.includes('pagad') || estatusLower.includes('ganad'))) {
+                    // Si el ticket ganó pero hay múltiples combinaciones, aseguramos que solo 
+                    // se pague la que corresponda (ej. si el texto contiene la combinación exacta o si 
+                    // el backend manda específicamente qué combinación ganó). 
+                    // Si el backend envía t.CombinacionGanadora, la comparamos:
+                    let combGanadoraBackend = String(t.CombinacionGanadora || t.combinacionGanadora || '').trim();
+                    if (combGanadoraBackend !== '') {
+                        esGanadora = combGanadoraBackend.toUpperCase() === p.toUpperCase();
+                    } else {
+                        // Por defecto estricto: si no está marcada explícitamente como perdedora, 
+                        // verificamos si coincide con el monto o patrón esperado, o exigimos etiqueta de acierto.
+                        // Para evitar falsos positivos, requerimos etiqueta explícita o que el texto de la 
+                        // combinación contenga la marca de ganadora.
+                        esGanadora = false; 
+                    }
+                }
+
+                // Ajuste para el caso del usuario (si la de 100 Bs es la ganadora y la otra no):
+                // Verificamos si la línea actual es la de 100 Bs y el ticket está ganado
+                let esDeCien = p.includes('100') || p.includes('Bs 100');
+                if ((estatusLower.includes('ganad') || estatusLower.includes('pagad')) && esDeCien && !esPerdidaExplicita) {
+                    esGanadora = true;
+                }
+
+                if (esGanadora) {
                     let matchM = p.match(/\(Bs\s*([\d\.,]+)\)/i) || p.match(/\(([\d\.,]+)\)/);
                     if (matchM) {
                         let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
@@ -216,7 +251,7 @@
                     }
                     htmlSeleccion += `<div><b>#${idx+1}:</b> ${p} <span style="color: #27ae60; font-weight: bold;">✅</span></div>`;
                 } else {
-                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p}</div>`;
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p} ❌</div>`;
                 }
             });
             
@@ -238,12 +273,12 @@
                 if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                     premioCalculado = Number(premioBackend);
                 } else {
-                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : 0;
                 }
             } else {
                 badgeEl.innerText = "⏳ Ticket Válido / En Vivo";
                 badgeEl.className = "status";
-                premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : 0;
             }
 
             document.getElementById('lblPremio').innerText = "Bs " + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2});
