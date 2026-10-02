@@ -5,25 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema Macuare Hípico - Admin</title>
   <style>
-    /* ========================================== */
-    /* CAPA DE SEGURIDAD VISUAL Y TÁCTIL (MÓVIL/PC)*/
-    /* ========================================== */
-    * {
-      -webkit-user-select: none; /* Safari */
-      -moz-user-select: Firefox; /* Firefox */
-      -ms-user-select: none;     /* IE10+/Edge */
-      user-select: none;         /* Estándar */
-      -webkit-touch-callout: none; /* Prevenir menú contextual en iOS/Android */
-    }
-
-    /* Permitir selección únicamente en campos de texto y formularios de entrada */
-    input, select, textarea {
-      -webkit-user-select: text;
-      -moz-user-select: text;
-      -ms-user-select: text;
-      user-select: text;
-    }
-
     :root {
       --bg-gradient: linear-gradient(135deg, #1b3b22 0%, #0d1f12 100%);
       --card-bg: rgba(22, 38, 26, 0.92);
@@ -292,7 +273,6 @@
       border-collapse: collapse; 
       font-size: 0.8rem; 
       text-align: left; 
-      white-space: nowrap;
     }
     th, td { 
       padding: 9px 8px; 
@@ -302,7 +282,6 @@
 
     .col-seleccion-6 {
       max-width: 280px;
-      white-space: normal !important;
       word-break: break-word;
       line-height: 1.3;
       font-size: 0.75rem;
@@ -376,7 +355,7 @@
   <div class="container">
     <!-- LOGIN -->
     <div id="loginSection">
-      <h2>🏇 Sistema Macuare Hípico</h2>
+      <h2>🐎 Sistema Macuare Hípico</h2>
       <div id="loginAlert" class="hidden alert"></div>
       <div class="form-group"><label>Usuario</label><input type="text" id="loginUsuario" placeholder="Usuario"></div>
       <div class="form-group"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
@@ -708,56 +687,6 @@
   </div>
 
   <script>
-    /* ================================================= */
-    /* CAPA DE SEGURIDAD JAVASCRIPT (BLOQUEOS Y INSPECTOR)*/
-    /* ================================================= */
-
-    // 1. Bloquear Clic Derecho
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    });
-
-    // 2. Bloquear atajos de teclado para inspección, copias y código fuente
-    document.addEventListener('keydown', function(e) {
-      // Bloquear F12
-      if (e.keyCode === 123) {
-        e.preventDefault();
-        return false;
-      }
-      // Bloquear Ctrl + Shift + I, Ctrl + Shift + J, Ctrl + Shift + C
-      if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
-        e.preventDefault();
-        return false;
-      }
-      // Bloquear Ctrl + U (Ver código fuente) y Ctrl + S (Guardar página)
-      if (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83)) {
-        e.preventDefault();
-        return false;
-      }
-    });
-
-    // 3. Sistema trampa Anti-DevTools (Detecta apertura de consola externa o inspector)
-    (function() {
-      try {
-        const element = new Image();
-        Object.defineProperty(element, 'id', {
-          get: function() {
-            // Acción en caso de que intenten inspeccionar o abrir consola de desarrollador
-            document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#0d1f12;color:#ef5350;font-family:sans-serif;text-align:center;padding:20px;'><h2>⚠️️ Acceso Restringido</h2><p>Herramientas de inspección no permitidas en este sistema.</p></div>";
-            throw new Error("Debugger detectado");
-          }
-        });
-        setInterval(function() {
-          console.log(element);
-          console.clear();
-        }, 1000);
-      } catch (err) {}
-    })();
-
-    /* ================================================= */
-    /* LÓGICA PRINCIPAL DEL SISTEMA                      */
-    /* ================================================= */
-
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
 
     let intervaloAutoRefresh = null;
@@ -773,6 +702,8 @@
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('adminPanel').classList.remove('hidden');
         document.getElementById('lblAdminUser').innerText = savedUser;
+        
+        // Forzar carga directa de datos para móviles
         cargarResultadosGuardados();
         cargarTopeRiesgo();
         cargarBalancesCajas();
@@ -780,14 +711,6 @@
       }
       var hoy = new Date().toISOString().split('T')[0];
       if(document.getElementById('nuevaFecha')) document.getElementById('nuevaFecha').value = hoy;
-
-      document.addEventListener("visibilitychange", function() {
-        if (document.hidden) {
-          if (intervaloAutoRefresh) clearInterval(intervaloAutoRefresh);
-        } else {
-          iniciarAutoActualizacion();
-        }
-      });
     };
 
     function generarEstructuraValidas() {
@@ -922,22 +845,7 @@
       });
     }
 
-    const apiCache = new Map();
-
     function enviarPeticion(params, callbackExito) {
-      var actionKey = params.action;
-      var cacheKey = JSON.stringify(params);
-
-      if (['getCarreras', 'getResultados', 'getTickets', 'getCajas', 'getUsuarios', 'getTopeRiesgo', 'obtenerHistorialMetricas'].includes(actionKey)) {
-        if (apiCache.has(cacheKey)) {
-          var cached = apiCache.get(cacheKey);
-          if (Date.now() - cached.timestamp < 15000) {
-            callbackExito(cached.data);
-            return;
-          }
-        }
-      }
-
       var url = WEB_APP_URL + "?";
       var queryArr = [];
       for (var key in params) { queryArr.push(key + "=" + encodeURIComponent(params[key])); }
@@ -948,7 +856,6 @@
       window[callbackName] = function(res) {
         delete window[callbackName];
         if (scriptTag && scriptTag.parentNode) { scriptTag.parentNode.removeChild(scriptTag); }
-        apiCache.set(cacheKey, { timestamp: Date.now(), data: res });
         if (callbackExito) callbackExito(res);
       };
 
@@ -986,6 +893,7 @@
           document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
           document.getElementById('lblAdminUser').innerText = nombreUsuarioValido;
+          
           cargarResultadosGuardados();
           cargarTopeRiesgo();
           cargarBalancesCajas();
@@ -1009,8 +917,6 @@
       intervaloAutoRefresh = setInterval(function() {
         var panelAdmin = document.getElementById('adminPanel');
         if (!panelAdmin || panelAdmin.classList.contains('hidden') || document.hidden || isTypingRefPago) return;
-
-        apiCache.clear();
 
         if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
           cargarDatosCarreras();
@@ -1064,7 +970,6 @@
 
       mostrarAlerta("Guardando Válida " + numValida + " y procesando...", "success", 0);
       guardarLocalmenteOptimizado();
-      apiCache.clear();
 
       var payload = { action: 'guardarResultados', validaIndividual: numValida };
 
@@ -1089,7 +994,6 @@
 
     function reiniciarJornada() {
       mostrarAlerta("Reiniciando y archivando jornada...", "success", 0);
-      apiCache.clear();
       enviarPeticion({ action: 'reiniciarJornada' }, function(res) {
         if (res && res.success) {
           var msg = res.message || "¡Jornada reiniciada!";
@@ -1117,7 +1021,6 @@
         mostrarAlerta("Falta número o nombre del ejemplar.", "error", 4000);
         return;
       }
-      apiCache.clear();
       enviarPeticion({
         action: 'guardarCarrera',
         hipodromo: document.getElementById('nuevoHipodromo').value,
@@ -1139,7 +1042,6 @@
 
     function retirarEjemplar(carrera, numero) {
       mostrarAlerta("Retirando ejemplar...", "success", 0);
-      apiCache.clear();
       enviarPeticion({ action: 'retirarEjemplar', carrera: carrera, numero: numero }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Retirado con éxito!", "success", 4000);
         cargarDatosCarreras();
@@ -1148,9 +1050,7 @@
 
     function cargarDatosCarreras() {
       var tbody = document.getElementById('tablaCarrerasBody');
-      if (tbody.innerHTML.indexOf('Cargando') === -1 && tbody.children.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Cargando...</td></tr>';
-      }
+      if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--accent);">Cargando registros...</td></tr>';
 
       enviarPeticion({ action: 'getCarreras' }, function(resCarreras) {
         enviarPeticion({ action: 'getResultados' }, function(resResultados) {
@@ -1207,7 +1107,7 @@
               tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">No hay ejemplares registrados para la ' + subTabValidaActual + '.</td></tr>';
             }
           } else {
-            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">Sin registros.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">Sin registros en Google Sheets.</td></tr>';
           }
         });
       });
@@ -1216,6 +1116,7 @@
     function cargarDatosPagoMovil() {
       if (isTypingRefPago) return;
       var tbody = document.getElementById('tablaPagoMovilBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--accent);">Cargando pagos...</td></tr>';
 
       enviarPeticion({ action: 'getResultados' }, function(resRes) {
         if (resRes && resRes.success && resRes.data) {
@@ -1313,7 +1214,6 @@
         return;
       }
       mostrarAlerta("Registrando pago...", "success", 0);
-      apiCache.clear();
       enviarPeticion({ action: 'marcarPagado', idTicket: idTicket, referencia: referencia }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Pago registrado!", "success", 4000);
         cargarDatosPagoMovil();
@@ -1322,6 +1222,8 @@
 
     function cargarBalancesCajas() {
       var tbody = document.getElementById('tablaCajasBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--accent);">Cargando balances...</td></tr>';
+
       enviarPeticion({ action: 'getCajas' }, function(res) {
         if (res && res.success && res.data && res.data.length > 0) {
           var html = '';
@@ -1353,7 +1255,6 @@
 
     function aprobarBalanceTaquilla(taquilla) {
       mostrarAlerta("Aprobando balance...", "success", 0);
-      apiCache.clear();
       enviarPeticion({ action: 'aprobarBalance', taquilla: taquilla }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Balance aprobado!", "success", 4000);
         cargarBalancesCajas();
@@ -1567,6 +1468,8 @@
 
     function cargarUsuariosSistema() {
       var tbody = document.getElementById('tablaUsuariosBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--accent);">Cargando usuarios...</td></tr>';
+
       enviarPeticion({ action: 'getUsuarios' }, function(res) {
         if (res && res.success && res.data && res.data.length > 0) {
           var html = '';
@@ -1595,7 +1498,6 @@
         return;
       }
       mostrarAlerta("Guardando usuario...", "success", 0);
-      apiCache.clear();
       enviarPeticion({
         action: 'guardarUsuario',
         id: editId,
@@ -1634,7 +1536,6 @@
 
     function cambiarEstadoUsuario(id, nuevoEstado) {
       mostrarAlerta("Actualizando estatus...", "success", 0);
-      apiCache.clear();
       enviarPeticion({ action: 'cambiarEstadoUsuario', id: id, estado: nuevoEstado }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Actualizado!", "success", 4000);
         cargarUsuariosSistema();
