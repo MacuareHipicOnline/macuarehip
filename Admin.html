@@ -34,6 +34,10 @@
       justify-content: center;
       align-items: flex-start;
       min-height: 100vh;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     .container {
@@ -83,6 +87,8 @@
       background: rgba(13, 31, 18, 0.9);
       color: white;
       transition: all 0.3s ease;
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     input:focus, select:focus {
@@ -687,6 +693,28 @@
   </div>
 
   <script>
+    /* CAPA DE SEGURIDAD ANTICOPIN / INSPECCIÓN */
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      // Bloquear F12
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+      // Bloquear Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
+      if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+        e.preventDefault();
+        return false;
+      }
+      if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
 
     let intervaloAutoRefresh = null;
