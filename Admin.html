@@ -695,15 +695,27 @@
     let subTabValidaActual = "Valida 1";
     let mapaResultadosGlobal = {};
 
+    // Envoltorio seguro para localStorage (evita bloqueos en móviles con modo privado/incognito)
+    const storageSeguro = {
+      getItem: function(key) {
+        try { return localStorage.getItem(key); } catch(e) { return null; }
+      },
+      setItem: function(key, val) {
+        try { localStorage.setItem(key, val); } catch(e) {}
+      },
+      removeItem: function(key) {
+        try { localStorage.removeItem(key); } catch(e) {}
+      }
+    };
+
     window.onload = function() {
       generarEstructuraValidas();
-      var savedUser = localStorage.getItem('macuare_admin_user');
+      var savedUser = storageSeguro.getItem('macuare_admin_user');
       if (savedUser) {
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('adminPanel').classList.remove('hidden');
         document.getElementById('lblAdminUser').innerText = savedUser;
         
-        // Forzar carga directa de datos para móviles
         cargarResultadosGuardados();
         cargarTopeRiesgo();
         cargarBalancesCajas();
@@ -776,13 +788,13 @@
           resultadosCache['v' + i + '_3'] = document.getElementById('v' + i + '_3') ? document.getElementById('v' + i + '_3').value : '';
           resultadosCache['v' + i + '_puestos'] = document.getElementById('v' + i + '_puestos') ? document.getElementById('v' + i + '_puestos').value : '3';
         }
-        localStorage.setItem('macuare_resultados_cache', JSON.stringify(resultadosCache));
+        storageSeguro.setItem('macuare_resultados_cache', JSON.stringify(resultadosCache));
       }, 300);
     }
 
     function cargarResultadosGuardados() {
       try {
-        var localCache = JSON.parse(localStorage.getItem('macuare_resultados_cache') || '{}');
+        var localCache = JSON.parse(storageSeguro.getItem('macuare_resultados_cache') || '{}');
         for (var i = 1; i <= 6; i++) {
           if (localCache['v' + i + '_1'] !== undefined && document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = localCache['v' + i + '_1'];
           if (localCache['v' + i + '_2'] !== undefined && document.getElementById('v' + i + '_2')) document.getElementById('v' + i + '_2').value = localCache['v' + i + '_2'];
@@ -845,6 +857,7 @@
       });
     }
 
+    /* SISTEMA DE PETICIÓN JSONP OPTIMIZADO PARA MÓVILES */
     function enviarPeticion(params, callbackExito) {
       var url = WEB_APP_URL + "?";
       var queryArr = [];
@@ -853,7 +866,10 @@
       queryArr.push("callback=" + callbackName);
       url += queryArr.join("&");
 
+      var ejecutado = false;
       window[callbackName] = function(res) {
+        if (ejecutado) return;
+        ejecutado = true;
         delete window[callbackName];
         if (scriptTag && scriptTag.parentNode) { scriptTag.parentNode.removeChild(scriptTag); }
         if (callbackExito) callbackExito(res);
@@ -861,12 +877,19 @@
 
       var scriptTag = document.createElement('script');
       scriptTag.src = url;
+      scriptTag.async = true;
+      scriptTag.crossOrigin = "anonymous";
+      
       scriptTag.onerror = function() {
+        if (ejecutado) return;
+        ejecutado = true;
         delete window[callbackName];
         if (scriptTag && scriptTag.parentNode) { scriptTag.parentNode.removeChild(scriptTag); }
         if (callbackExito) callbackExito({ success: false, message: "Error de conexión con Google Sheets." });
       };
-      document.body.appendChild(scriptTag);
+
+      // Inyectar en el head para compatibilidad total con navegadores móviles
+      document.head.appendChild(scriptTag);
     }
 
     function intentarLogin() {
@@ -889,7 +912,7 @@
         var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
         if ((res && res.success && String(res.rol).toLowerCase() === 'admin') || esAdminMaster) {
           var nombreUsuarioValido = (res && res.usuario) ? res.usuario : usuario;
-          localStorage.setItem('macuare_admin_user', nombreUsuarioValido);
+          storageSeguro.setItem('macuare_admin_user', nombreUsuarioValido);
           document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
           document.getElementById('lblAdminUser').innerText = nombreUsuarioValido;
@@ -908,7 +931,7 @@
 
     function cerrarSesion() {
       if (intervaloAutoRefresh) clearInterval(intervaloAutoRefresh);
-      localStorage.removeItem('macuare_admin_user');
+      storageSeguro.removeItem('macuare_admin_user');
       window.location.reload();
     }
 
@@ -998,7 +1021,7 @@
         if (res && res.success) {
           var msg = res.message || "¡Jornada reiniciada!";
           mostrarAlerta(msg, "success", 4000);
-          localStorage.removeItem('macuare_resultados_cache');
+          storageSeguro.removeItem('macuare_resultados_cache');
           mapaResultadosGlobal = {};
           for (var i = 1; i <= 6; i++) {
             if (document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = '';
