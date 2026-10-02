@@ -1053,7 +1053,7 @@
                 let fechaCarrera = new Date(fechaCarreraStr + "T00:00:00");
                 
                 if (!isNaN(fechaCarrera.getTime()) && fechaCarrera < hoy) {
-                    alert(`⚠️️ No se puede emitir el ticket. La fecha programada para ${hipodromo} (${fechaCarreraStr}) ya ha vencido.`);
+                    alert(`⚠️ No se puede emitir el ticket. La fecha programada para ${hipodromo} (${fechaCarreraStr}) ya ha vencido.`);
                     return;
                 }
             }
@@ -1270,11 +1270,6 @@
         }
 
         function enviarTicketWhatsApp(idTicket, jugador, telefono, seleccion, monto, token, hipodromo, premioPotencial) {
-            let telfLimpio = (telefono || '').replace(/\D/g, '');
-            if (!telfLimpio) {
-                telfLimpio = "584149443028";
-            }
-
             let enlaceEnVivo = `https://macuarehipiconline.github.io/macuarehip/ver-ticket.html?token=${token || idTicket}`;
             let mensaje = `🐎 *MACUARE HÍPICO ONLINE* 🐎\n\n` +
                           `¡Hola *${jugador}*! 👋 Tu jugada ha sido registrada con éxito. ¡Mucho éxito en la jornada! 🏆\n\n` +
@@ -1286,7 +1281,7 @@
                           `🌐 *Consulta tu estatus en vivo aquí:*\n${enlaceEnVivo}\n\n` +
                           `📌 _Conserve este mensaje como comprobante de su jugada._`;
 
-            let urlWa = `https://api.whatsapp.com/send?phone=${telfLimpio}&text=${encodeURIComponent(mensaje)}`;
+            let urlWa = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;
             window.open(urlWa, '_blank');
         }
 
