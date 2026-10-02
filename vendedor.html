@@ -1208,14 +1208,15 @@
                 let token = t.Token || t.token || idTicket;
                 let estatusLower = estatus.toLowerCase();
 
-                let premioCalculado = 0;
+               let premioCalculado = 0;
                 let badgeClass = "badge-pendiente";
                 let estatusTexto = estatus;
                 let seleccionVisual = seleccion;
 
+                // Capturar el premio oficial evaluado por el servidor (Admin / Backend)
                 let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
-                // Limpieza y formateo inteligente de sub-combinaciones con identificadores #1, #2, etc.
+                // Limpieza y formateo inteligente de sub-combinaciones
                 let partesSub = seleccion.split(" | ");
                 let partesFormateadas = [];
                 let sumaGanadoras = 0;
@@ -1255,31 +1256,38 @@
                     seleccionVisual = partesFormateadas.join("<br>");
                 }
 
+                // LÓGICA UNIFICADA DE PREMIOS (Igual al Admin / Servidor)
                 if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
                     badgeClass = "badge-perdido";
                     estatusTexto = "❌ Perdedor";
                     premioCalculado = 0;
+                } else if (premioBackend !== null && !isNaN(Number(premioBackend))) {
+                    // Si el servidor ya emitió un veredicto de premio (0 o monto ganado), tiene máxima prioridad
+                    premioCalculado = Number(premioBackend);
+                    if (estatusLower.includes('pagad')) {
+                        badgeClass = "badge-pagado";
+                        estatusTexto = "✅ Pagado";
+                    } else if (premioCalculado > 0) {
+                        badgeClass = "badge-ganador";
+                        estatusTexto = "🏆 ¡GANADOR!";
+                    } else {
+                        badgeClass = "badge-perdido";
+                        estatusTexto = "❌ Perdedor";
+                    }
                 } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
-                    badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganado";
+                    badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganador";
                     estatusTexto = estatusLower.includes('pagad') ? "✅ Pagado" : "🏆 ¡GANADOR!";
                     
-                    if (premioBackend !== null && !isNaN(Number(premioBackend))) {
-                        premioCalculado = Number(premioBackend);
+                    if (sumaGanadoras > 0) {
+                        premioCalculado = sumaGanadoras * 10;
                     } else {
-                        if (sumaGanadoras > 0) {
-                            premioCalculado = sumaGanadoras * 10;
-                        } else if (!haySubCombValidables || partesSub.length <= 1) {
-                            premioCalculado = monto * 10;
-                        } else {
-                            premioCalculado = 0;
-                        }
+                        premioCalculado = monto * 10;
                     }
                 } else {
                     badgeClass = "badge-pendiente";
                     estatusTexto = "⏳ " + estatus;
-                    premioCalculado = monto * 10;
+                    premioCalculado = monto * 10; // Potencial mientras esté pendiente
                 }
-
                 let ticketObjStr = JSON.stringify({
                     ID_Ticket: idTicket,
                     Vendedor: vendedorId,
