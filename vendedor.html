@@ -1208,7 +1208,7 @@
                 let token = t.Token || t.token || idTicket;
                 let estatusLower = estatus.toLowerCase();
 
-               let premioCalculado = 0;
+                let premioCalculado = 0;
                 let badgeClass = "badge-pendiente";
                 let estatusTexto = estatus;
                 let seleccionVisual = seleccion;
@@ -1230,7 +1230,7 @@
                     let etiquetaSub = "";
                     let subSinEtiqueta = subTrim;
                     if (/^#\d+:/.test(subTrim)) {
-                        let matchEtiqueta = subTrim.match(|/^(#\d+):\s*(.*)/);
+                        let matchEtiqueta = subTrim.match(/^(#\d+):\s*(.*)/);
                         if (matchEtiqueta) {
                             etiquetaSub = matchEtiqueta[1];
                             subSinEtiqueta = matchEtiqueta[2];
@@ -1288,6 +1288,7 @@
                     estatusTexto = "⏳ " + estatus;
                     premioCalculado = monto * 10; // Potencial mientras esté pendiente
                 }
+
                 let ticketObjStr = JSON.stringify({
                     ID_Ticket: idTicket,
                     Vendedor: vendedorId,
