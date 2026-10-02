@@ -232,10 +232,10 @@
                         let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
                         sumaGanadoras += mSub;
                     }
-                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').trim()} <span style="color: #27ae60; font-weight: bold;">✅</span></div>`;
-                } else {
-                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').trim()} ❌</div>`;
                 }
+
+                // Se muestra únicamente el número de la combinación y su texto limpio sin símbolos de check o cruz
+                htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').replace(/[✅❌]/g, '').trim()}</div>`;
             });
             
             document.getElementById('lblJugada').innerHTML = htmlSeleccion;
