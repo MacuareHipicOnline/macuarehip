@@ -253,6 +253,11 @@
 
             document.getElementById('lblTicket').innerText = tokenTicket;
             cargarResultadosGlobalesYBuscarTicket(tokenTicket);
+
+            // Actualización automática cada 10 segundos del estatus y resultados en vivo
+            setInterval(() => {
+                cargarResultadosGlobalesYBuscarTicket(tokenTicket);
+            }, 10000);
         });
 
         function abrirModalReglas() {
@@ -406,15 +411,24 @@
                 if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                     premioCalculado = Number(premioBackend);
                 } else {
-                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : 0;
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
                 }
             } else {
-                badgeEl.innerText = "⏳ Ticket Válido / En Vivo";
                 badgeEl.className = "status";
-                premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : 0;
+                if (todasPerdidas) {
+                    badgeEl.innerText = "❌ Perdido (Sin Combos Vivos)";
+                    badgeEl.className = "status perdido";
+                    premioCalculado = 0;
+                } else {
+                    badgeEl.innerText = "⏳ Vivo / Pendiente";
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                }
             }
 
-            document.getElementById('lblPremio').innerText = "Bs " + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            let premioFinalMostrar = premioCalculado > 0 ? premioCalculado : (sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10);
+            if (todasPerdidas) premioFinalMostrar = 0;
+
+            document.getElementById('lblPremio').innerText = "Bs " + Number(premioFinalMostrar).toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
     </script>
 </body>

@@ -1284,6 +1284,12 @@
       });
     }
 
+    function parseNum(val) {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      return parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
+    }
+
     function cargarDatosEstadisticas() {
       enviarPeticion({ action: 'getCajas' }, function(resCajas) {
         enviarPeticion({ action: 'obtenerHistorialMetricas' }, function(resHistorial) {
@@ -1303,16 +1309,34 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(item => {
-          var ventas = parseFloat(item.ventas || item.Ventas || 0) || 0;
-          var premios = parseFloat(item.premios || item.Premios || 0) || 0;
-          var comision = parseFloat(item.comision || item.Comision || 0) || 0;
-          var neto = parseFloat(item.netoSistema || item.neto || item.Neto || 0) || 0;
+          var ventasStr = item.ventas || item.Ventas || '0,00';
+          var premiosStr = item.premios || item.Premios || '0,00';
+          var laQuedaStr = item.laQueda || item.LaQueda || '0,00';
+          var comisionStr = item.comision || item.Comision || '0,00';
+          var netoStr = item.netoSistema || item.neto || item.Neto || '0,00';
+
+          var ventas = parseNum(ventasStr);
+          var premios = parseNum(premiosStr);
+          var laQueda = parseNum(laQuedaStr);
+          var comision = parseNum(comisionStr);
+          var neto = parseNum(netoStr);
 
           tVentas += ventas; tPremios += premios; tComisiones += comision; tNeto += neto;
-          var netoStr = item.netoSistema || item.neto || item.Neto || '0,00';
-          var estiloNetoFila = neto < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
 
-          html += '<tr><td>' + (item.taquilla || item.Taquilla || 'N/D') + '</td><td>' + (item.ventas || item.Ventas || '0,00') + '</td><td>' + (item.premios || item.Premios || '0,00') + '</td><td>' + (item.laQueda || item.LaQueda || '0,00') + '</td><td>' + (item.comision || item.Comision || '0,00') + '</td><td style="' + estiloNetoFila + '">' + netoStr + '</td></tr>';
+          var styleVentas = ventas < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var stylePremios = 'color: var(--error-text);'; // Premios siempre rojo
+          var styleLaQueda = laQueda < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var styleComision = comision < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var styleNeto = neto < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
+
+          html += '<tr>' +
+            '<td>' + (item.taquilla || item.Taquilla || 'N/D') + '</td>' +
+            '<td style="' + styleVentas + '">' + ventasStr + '</td>' +
+            '<td style="' + stylePremios + '">' + premiosStr + '</td>' +
+            '<td style="' + styleLaQueda + '">' + laQuedaStr + '</td>' +
+            '<td style="' + styleComision + '">' + comisionStr + '</td>' +
+            '<td style="' + styleNeto + '">' + netoStr + '</td>' +
+          '</tr>';
         });
         tbody.innerHTML = html;
       } else {

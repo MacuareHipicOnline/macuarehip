@@ -530,6 +530,16 @@
             }
             cargarFechasHipodromos();
             cargarResultadosGlobalesAdmin();
+
+            // Actualización automática cada 10 segundos si el usuario ya inició sesión
+            setInterval(() => {
+                const userActivo = localStorage.getItem("usuarioMacuareVendedor");
+                if (userActivo) {
+                    consultarCajaVendedor(userActivo);
+                }
+                cargarFechasHipodromos();
+                cargarResultadosGlobalesAdmin();
+            }, 10000);
         });
 
         function cargarResultadosGlobalesAdmin() {
