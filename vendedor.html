@@ -324,7 +324,7 @@
         }
         .badge-pendiente { background-color: #fcf3cf; color: #9a7b0c; border: 1px solid #f9e79f; }
         .badge-pagado { background-color: #d4efdf; color: #196f3d; border: 1px solid #a3e4d7; }
-        .badge-ganado { background-color: #27ae60; color: #ffffff; border: 1px solid #1e8449; font-weight: 800; box-shadow: 0 2px 5px rgba(39, 174, 96, 0.4); }
+        .badge-ganado { background-color: #d4efdf; color: #1e5620; border: 1px solid #27ae60; font-weight: 800; }
         .badge-perdido { background-color: #fadbd8; color: #c0392b; border: 1px solid #f5b7b1; }
 
         .btn-accion {
@@ -930,7 +930,7 @@
                 referenciaLocal = metodoPago.toUpperCase();
             }
 
-            let combinacionesValidasConsolidadas = listaJugadasActuales.map((j, i) => `#${i + 1}: ${j.combinacion} (Bs ${j.monto})`).join(" | ");
+            let combinacionesValidasConsolidadas = listaJugadasActuales.map(j => `${j.combinacion} (Bs ${j.monto})`).join(" | ");
             let montoTotalValidas = listaJugadasActuales.reduce((sum, j) => sum + j.monto, 0);
 
             let url = `${URL_WEB_APP}?action=registrarTicketControlado&vendedorId=${encodeURIComponent(vendedorId)}&jugador=${encodeURIComponent(jugadorNombre)}&hipodromo=${encodeURIComponent(hipodromo)}&combinacion=${encodeURIComponent(combinacionesValidasConsolidadas)}&monto=${encodeURIComponent(montoTotalValidas)}&banco=${encodeURIComponent(bancoPremio)}&telefono=${encodeURIComponent(telefono)}&cedulaPago=${encodeURIComponent(cedulaPago)}&referencia=`;
@@ -1213,80 +1213,55 @@
                 let estatusTexto = estatus;
                 let seleccionVisual = seleccion;
 
-                // Capturar el premio oficial evaluado por el servidor (Admin / Backend)
                 let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
-                // Limpieza y formateo inteligente de sub-combinaciones
-                let partesSub = seleccion.split(" | ");
-                let partesFormateadas = [];
-                let sumaGanadoras = 0;
-                let haySubCombValidables = false;
-
-                partesSub.forEach((sub, subIdx) => {
-                    let subTrim = sub.trim();
-                    if (!subTrim) return;
-                    haySubCombValidables = true;
-
-                    let etiquetaSub = "";
-                    let subSinEtiqueta = subTrim;
-                    if (/^#\d+:/.test(subTrim)) {
-                        let matchEtiqueta = subTrim.match(/^(#\d+):\s*(.*)/);
-                        if (matchEtiqueta) {
-                            etiquetaSub = matchEtiqueta[1];
-                            subSinEtiqueta = matchEtiqueta[2];
-                        }
-                    } else {
-                        etiquetaSub = `#${subIdx + 1}`;
-                    }
-
-                    let subLower = subSinEtiqueta.toLowerCase();
-                    if (subLower.includes('[perdedor]') || subLower.includes('[perdido]')) {
-                        partesFormateadas.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
-                    } else {
-                        partesFormateadas.push(`<span style="color: #1e5620; font-weight: bold;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
-                        let matchMonto = subSinEtiqueta.match(/\(Bs\s*([\d\.,]+)\)/i) || subSinEtiqueta.match(/\(([\d\.,]+)\)/);
-                        if (matchMonto) {
-                            let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
-                            sumaGanadoras += montoSub;
-                        }
-                    }
-                });
-
-                if (partesFormateadas.length > 0) {
-                    seleccionVisual = partesFormateadas.join("<br>");
-                }
-
-                // LÓGICA UNIFICADA DE PREMIOS (Igual al Admin / Servidor)
                 if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
                     badgeClass = "badge-perdido";
                     estatusTexto = "❌ Perdedor";
                     premioCalculado = 0;
-                } else if (premioBackend !== null && !isNaN(Number(premioBackend))) {
-                    // Si el servidor ya emitió un veredicto de premio (0 o monto ganado), tiene máxima prioridad
-                    premioCalculado = Number(premioBackend);
-                    if (estatusLower.includes('pagad')) {
-                        badgeClass = "badge-pagado";
-                        estatusTexto = "✅ Pagado";
-                    } else if (premioCalculado > 0) {
-                        badgeClass = "badge-ganador";
-                        estatusTexto = "🏆 ¡GANADOR!";
-                    } else {
-                        badgeClass = "badge-perdido";
-                        estatusTexto = "❌ Perdedor";
-                    }
+                    seleccionVisual = `<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${seleccion}</span> <span style="color:#c0392b; font-weight:bold; font-size:11px;">[PERDEDOR]</span>`;
                 } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
-                    badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganador";
+                    badgeClass = estatusLower.includes('pagad') ? "badge-pagado" : "badge-ganado";
                     estatusTexto = estatusLower.includes('pagad') ? "✅ Pagado" : "🏆 ¡GANADOR!";
                     
-                    if (sumaGanadoras > 0) {
-                        premioCalculado = sumaGanadoras * 10;
+                    if (premioBackend !== null && !isNaN(Number(premioBackend))) {
+                        premioCalculado = Number(premioBackend);
                     } else {
-                        premioCalculado = monto * 10;
+                        let partesSub = seleccion.split(" | ");
+                        let sumaGanadoras = 0;
+                        let haySubCombValidables = false;
+                        let seleccionVisualPartes = [];
+
+                        partesSub.forEach(sub => {
+                            haySubCombValidables = true;
+                            let subLower = sub.toLowerCase();
+                            if (subLower.includes('[perdedor]') || subLower.includes('[perdido]')) {
+                                seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">${sub}</span>`);
+                            } else {
+                                seleccionVisualPartes.push(`<span style="color: #1e5620; font-weight: bold;">${sub}</span>`);
+                                let matchMonto = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                                if (matchMonto) {
+                                    let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
+                                    sumaGanadoras += montoSub;
+                                }
+                            }
+                        });
+
+                        if (sumaGanadoras > 0) {
+                            premioCalculado = sumaGanadoras * 10;
+                            if (partesSub.length > 1) {
+                                seleccionVisual = seleccionVisualPartes.join(" | ");
+                            }
+                        } else if (!haySubCombValidables || partesSub.length <= 1) {
+                            premioCalculado = monto * 10;
+                        } else {
+                            premioCalculado = 0;
+                        }
                     }
                 } else {
                     badgeClass = "badge-pendiente";
                     estatusTexto = "⏳ " + estatus;
-                    premioCalculado = monto * 10; // Potencial mientras esté pendiente
+                    premioCalculado = monto * 10;
                 }
 
                 let ticketObjStr = JSON.stringify({
