@@ -135,6 +135,7 @@
         });
 
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
+        let mapaResultadosGlobal = {};
 
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -149,8 +150,61 @@
             }
 
             document.getElementById('lblTicket').innerText = tokenTicket;
-            buscarDetallesTicketNube(tokenTicket);
+            cargarResultadosGlobalesYBuscarTicket(tokenTicket);
         });
+
+        // 🌟 FUNCIÓN EXACTA DE EVALUACIÓN DE COMBINACIONES VIVAS (UNIFICADA CON ADMIN Y VENDEDOR)
+        function evaluarCombinacionViva(subComboStr) {
+            let partesLimpias = subComboStr.split('(')[0];
+            let caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
+
+            for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
+                let resultadoInfo = mapaResultadosGlobal[validaIdx];
+                if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
+                    let caballoJugado = caballosElegidos[validaIdx - 1];
+                    if (caballoJugado) {
+                        let puestosPermitidos = resultadoInfo.puestos;
+                        let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+                        if (!ganadoresValidos.includes(caballoJugado)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function cargarResultadosGlobalesYBuscarTicket(ticketId) {
+            fetch(`${URL_WEB_APP}?action=getResultados`)
+                .then(res => res.json())
+                .then(resRes => {
+                    if (resRes && resRes.success && resRes.data) {
+                        mapaResultadosGlobal = {};
+                        resRes.data.forEach(function(row) {
+                            let nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+                            let match = nombreValida.match(/(\d+)/);
+                            if (match) {
+                                let idx = parseInt(match[1]);
+                                if (idx >= 1 && idx <= 6) {
+                                    let c1 = String(row.CaballoGanador || "").trim();
+                                    let c2 = String(row['2do lugar'] || "").trim();
+                                    let c3 = String(row['3er lugar'] || "").trim();
+                                    let puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                                    mapaResultadosGlobal[idx] = {
+                                        ganadores: [c1, c2, c3].filter(c => c !== ""),
+                                        puestos: puestosValidos
+                                    };
+                                }
+                            }
+                        });
+                    }
+                    buscarDetallesTicketNube(ticketId);
+                })
+                .catch(err => {
+                    console.error("Error al cargar resultados:", err);
+                    buscarDetallesTicketNube(ticketId);
+                });
+        }
 
         function buscarDetallesTicketNube(ticketId) {
             fetch(`${URL_WEB_APP}?action=getTickets`)
@@ -202,50 +256,34 @@
             let partesSeleccion = seleccion.split(" | ");
             let htmlSeleccion = "";
             let sumaGanadoras = 0;
-
-            let combGanadoraBackend = String(t.CombinacionGanadora || t.combinacionGanadora || '').trim();
+            let todasPerdidas = true;
 
             partesSeleccion.forEach((p, idx) => {
-                let subLower = p.toLowerCase();
-                
-                // Validación dinámica pura (sin montos quemados)
-                let esGanadoraExplicita = subLower.includes('[ganador]') || subLower.includes('[acertado]') || subLower.includes('[ok]') || subLower.includes('✅');
-                let esPerdidaExplicita = subLower.includes('[perdedor]') || subLower.includes('[perdido]') || subLower.includes('[x]') || subLower.includes('❌');
-
-                let esGanadora = false;
-
-                if (esGanadoraExplicita) {
-                    esGanadora = true;
-                } else if (combGanadoraBackend !== '') {
-                    // Si el backend especifica exactamente qué combinación ganó
-                    esGanadora = combGanadoraBackend.toUpperCase() === p.toUpperCase();
-                } else if (estatusLower.includes('ganad') || estatusLower.includes('pagad')) {
-                    // Si el ticket es ganador en general y no tiene una marca explícita de pérdida en esta línea
-                    esGanadora = !esPerdidaExplicita;
-                } else {
-                    esGanadora = false;
-                }
-
-                if (esGanadora) {
+                let estaViva = evaluarCombinacionViva(p);
+                if (estaViva) {
+                    todasPerdidas = false;
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> <span style="color: #1e5620;">✓ ${p}</span></div>`;
                     let matchM = p.match(/\(Bs\s*([\d\.,]+)\)/i) || p.match(/\(([\d\.,]+)\)/);
                     if (matchM) {
                         let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
                         sumaGanadoras += mSub;
                     }
+                } else {
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> <span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">✗ ${p} (Caída)</span></div>`;
                 }
-
-                // Se muestra únicamente el número de la combinación y su texto limpio sin símbolos de check o cruz
-                htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').replace(/[✅❌]/g, '').trim()}</div>`;
             });
             
             document.getElementById('lblJugada').innerHTML = htmlSeleccion;
 
             let badgeEl = document.getElementById('lblEstadoBadge');
             let premioCalculado = 0;
-
             let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
-            if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
+            if (todasPerdidas && partesSeleccion.length > 0) {
+                badgeEl.innerText = "❌ Ticket Perdedor (Sin Combos Vivos)";
+                badgeEl.className = "status perdido";
+                premioCalculado = 0;
+            } else if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
                 badgeEl.innerText = "❌ Ticket Perdedor";
                 badgeEl.className = "status perdido";
                 premioCalculado = 0;
