@@ -98,6 +98,67 @@
             line-height: 1.4;
             color: #1f2e20;
         }
+
+        /* MODALES ANIMADOS Y LIMPIOS */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(20, 36, 23, 0.75); 
+            backdrop-filter: blur(4px);
+            justify-content: center; 
+            align-items: center; 
+            z-index: 2000; 
+            padding: 15px; 
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+        }
+        .modal-content { 
+            background: #ffffff; 
+            padding: 25px; 
+            border-radius: 14px; 
+            width: 100%; 
+            max-width: 400px; 
+            border: 2px solid #c59b27; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+            transform: scale(0.85);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-content h3 { 
+            color: #73502b; 
+            margin-top: 0; 
+            text-align: center; 
+            border-bottom: 2px solid #e2dac9; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px; 
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .btn-cerrar-modal { 
+            background: #235224; 
+            color: #fff; 
+            margin-top: 15px; 
+            width: 100%; 
+            padding: 11px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        .btn-cerrar-modal:hover { background: #183c19; }
     </style>
 </head>
 <body>
@@ -118,10 +179,51 @@
             <p style="margin-top: 12px;"><strong>Monto Apuesta:</strong> Bs <span id="lblMonto">0.00</span></p>
             <p><strong>Premio Real / Estimado:</strong> <span id="lblPremio" style="color: #73502b; font-weight: bold;">Bs 0.00</span></p>
         </div>
+
+        <button type="button" style="width: 100%; background: #eae5d9; color: #73502b; border: 1px solid #bfae91; padding: 11px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 5px;" onclick="abrirModalReglas()">📖 Ver Reglas del Juego</button>
+    </div>
+
+    <!-- MODAL DE REGLAS ANIMADO PARA EL JUGADOR -->
+    <div class="modal-overlay" id="modalReglas">
+        <div class="modal-content">
+            <h3>📖 Reglas del Macuare Hípico</h3>
+            
+            <div style="font-size: 13px; color: #2c3a2e; line-height: 1.5;">
+                <div style="background: #fdfbf7; padding: 10px; border-radius: 6px; border: 1px solid #e2dac9; margin-bottom: 8px;">
+                    <p style="font-weight: bold; color: #73502b; margin-bottom: 2px;">1️⃣ Resultados Oficiales</p>
+                    <p style="color: #4a584b;">Basados estrictamente en los boletines oficiales del <b>INH o HINAVA</b>.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 10px; border-radius: 6px; border: 1px solid #e2dac9; margin-bottom: 8px;">
+                    <p style="font-weight: bold; color: #73502b; margin-bottom: 2px;">2️⃣ Ejemplar Retirado</p>
+                    <p style="color: #4a584b;">Si tu caballo es retirado oficialmente, corre automáticamente con el siguiente puesto disponible.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 10px; border-radius: 6px; border: 1px solid #e2dac9; margin-bottom: 8px;">
+                    <p style="font-weight: bold; color: #73502b; margin-bottom: 2px;">3️⃣ Puestos Válidos</p>
+                    <ul style="margin-left: 16px; color: #4a584b;">
+                        <li><b>1-9 inscritos:</b> 1 puesto (1° lugar).</li>
+                        <li><b>10-11 inscritos:</b> 2 puestos (1° y 2°).</li>
+                        <li><b>12-20 inscritos:</b> 3 puestos (1°, 2° y 3°).</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 10px; border-radius: 6px; border: 1px solid #e2dac9; margin-bottom: 8px;">
+                    <p style="font-weight: bold; color: #73502b; margin-bottom: 2px;">4️⃣ Estatus y Caídas</p>
+                    <p style="color: #4a584b;">Cada línea se evalúa por separado. Si no entra en puestos, se marca como <span style="color:#c0392b; font-weight:bold;">(Caída)</span>.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 10px; border-radius: 6px; border: 1px solid #e2dac9; margin-bottom: 4px;">
+                    <p style="font-weight: bold; color: #73502b; margin-bottom: 2px;">5️⃣ Pago de Premios</p>
+                    <p style="color: #4a584b;">La acreditación de premios ganadores es <b>automática al finalizar la jornada</b>.</p>
+                </div>
+            </div>
+
+            <button class="btn-cerrar-modal" onclick="cerrarModalReglas()">Cerrar Ventana</button>
+        </div>
     </div>
 
     <script>
-        // Capas de seguridad anti-inspección y anti-copia
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
             if (
@@ -153,7 +255,17 @@
             cargarResultadosGlobalesYBuscarTicket(tokenTicket);
         });
 
-        // 🌟 FUNCIÓN EXACTA DE EVALUACIÓN DE COMBINACIONES VIVAS (UNIFICADA CON ADMIN Y VENDEDOR)
+        function abrirModalReglas() {
+            let m = document.getElementById('modalReglas');
+            m.style.display = 'flex';
+            setTimeout(() => m.classList.add('active'), 10);
+        }
+        function cerrarModalReglas() {
+            let m = document.getElementById('modalReglas');
+            m.classList.remove('active');
+            setTimeout(() => m.style.display = 'none', 300);
+        }
+
         function evaluarCombinacionViva(subComboStr) {
             let partesLimpias = subComboStr.split('(')[0];
             let caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });

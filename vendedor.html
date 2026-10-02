@@ -408,9 +408,51 @@
             }
         }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,36,23,0.7); justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
-        .modal-content { background: #ffffff; padding: 30px; border-radius: 12px; width: 100%; max-width: 420px; border: 2px solid #c59b27; box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
-        .modal-content h3 { color: #73502b; margin-top: 0; text-align: center; border-bottom: 2px solid #e2dac9; padding-bottom: 10px; margin-bottom: 18px; font-weight: 700;}
+        /* MODALES ANIMADOS Y LIMPIOS */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(20, 36, 23, 0.75); 
+            backdrop-filter: blur(4px);
+            justify-content: center; 
+            align-items: center; 
+            z-index: 2000; 
+            padding: 15px; 
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+        }
+        .modal-content { 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 14px; 
+            width: 100%; 
+            max-width: 440px; 
+            border: 2px solid #c59b27; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+            transform: scale(0.85);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-content h3 { 
+            color: #73502b; 
+            margin-top: 0; 
+            text-align: center; 
+            border-bottom: 2px solid #e2dac9; 
+            padding-bottom: 10px; 
+            margin-bottom: 18px; 
+            font-weight: 700;
+        }
         .dato-banco { background: #f9f6ef; padding: 12px; border-radius: 6px; border: 1px solid #bfae91; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         .dato-banco span { font-family: monospace; color: #1e5620; font-size: 1.1rem; font-weight: 700; }
         .btn-copiar-todo { background: #c59b27; color: #142417; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; margin-bottom: 18px; font-size: 1rem; transition: background 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -464,7 +506,6 @@
     </div>
 
     <script>
-        // Capas de seguridad anti-inspección y anti-copia
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => {
             if (
@@ -595,6 +636,7 @@
         <button class="tab-btn" onclick="cambiarPestaña(event, 'tabVentas')">🎟️ Ventas Multi-Jugada</button>
         <button class="tab-btn" onclick="cambiarPestaña(event, 'tabMisTickets')">📋 Mis Tickets</button>
         <button class="tab-btn" onclick="cambiarPestaña(event, 'tabControlPagos')">💳 Control de Pagos</button>
+        <button class="tab-btn" onclick="abrirModalReglas()" style="background-color: #73502b; color: #ffffff; border-color: #553a1f;">📖 Reglas</button>
     </div>
 
     <div id="tabResumenCaja" class="tab-content active">
@@ -747,7 +789,7 @@
                 </div>
             </div>
 
-            <button class="btn-primary" onclick="registrarJugadaMultiples()" style="margin-top: 25px; font-size: 17px; background-color: #235224;">🎟️️ Emitir Boleto Único Consolidado</button>
+            <button class="btn-primary" onclick="registrarJugadaMultiples()" style="margin-top: 25px; font-size: 17px; background-color: #235224;">🎟️ Emitir Boleto Único Consolidado</button>
         </div>
     </div>
 
@@ -821,11 +863,73 @@
         </div>
     </div>
 
+    <!-- POPUP / MODAL DE REGLAS AMIGABLE Y ANIMADO -->
+    <div class="modal-overlay" id="modalReglas">
+        <div class="modal-content" style="max-width: 480px;">
+            <h3>🐎 Guía y Reglas del Macuare Hípico</h3>
+            
+            <div style="font-size: 13.5px; color: #2c3a2e; line-height: 1.6; text-align: left;">
+                <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
+                    <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">1️⃣ Resultados Oficiales</p>
+                    <p style="color: #4a584b; font-size: 13px;">Todas las jugadas se rigen estrictamente por los resultados oficiales emitidos por el <b>INH o HINAVA</b>.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
+                    <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">2️⃣ Ejemplares Retirados</p>
+                    <p style="color: #4a584b; font-size: 13px;">Si un caballo seleccionado es retirado oficialmente, tu jugada corre automáticamente con el siguiente número de puesto disponible en la carrera.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
+                    <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">3️⃣ Puestos Válidos según Inscritos</p>
+                    <ul style="margin-left: 18px; color: #4a584b; font-size: 13px;">
+                        <li><b>1 a 9 ejemplares:</b> 1 puesto (Solo 1° lugar).</li>
+                        <li><b>10 a 11 ejemplares:</b> 2 puestos (1° y 2° lugar).</li>
+                        <li><b>12 a 20 ejemplares:</b> 3 puestos (1°, 2° y 3° lugar).</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
+                    <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">4️⃣ Estatus del Ticket (Caídas)</p>
+                    <p style="color: #4a584b; font-size: 13px;">Cada línea o sub-combinación se evalúa de manera independiente. El ticket se considera perdedor o con caída si no cumple con la regla de puestos en alguna de las válidas.</p>
+                </div>
+
+                <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 6px;">
+                    <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">5️⃣ Pago de Premios</p>
+                    <p style="color: #4a584b; font-size: 13px;">La acreditación y pago de premios para los tickets ganadores es <b>automática al finalizar la jornada hípica</b>.</p>
+                </div>
+            </div>
+
+            <button class="btn-cerrar-modal" style="background-color: #235224;" onclick="cerrarModalReglas()">¡Entendido, a ganar! 🏆</button>
+        </div>
+    </div>
+
     <script>
         let listaJugadasActuales = [];
         let indicesJugadasConTopeExcedido = [];
 
-        // 🌟 FUNCIÓN EXACTA DE EVALUACIÓN DE COMBINACIONES (COPIADA DEL ADMIN.HTML)
+        // Funciones animadas para los modales
+        function abrirModalCuadre() {
+            let m = document.getElementById('modalCuadre');
+            m.style.display = 'flex';
+            setTimeout(() => m.classList.add('active'), 10);
+        }
+        function cerrarModalCuadre() {
+            let m = document.getElementById('modalCuadre');
+            m.classList.remove('active');
+            setTimeout(() => m.style.display = 'none', 300);
+        }
+
+        function abrirModalReglas() {
+            let m = document.getElementById('modalReglas');
+            m.style.display = 'flex';
+            setTimeout(() => m.classList.add('active'), 10);
+        }
+        function cerrarModalReglas() {
+            let m = document.getElementById('modalReglas');
+            m.classList.remove('active');
+            setTimeout(() => m.style.display = 'none', 300);
+        }
+
         function evaluarCombinacionViva(subComboStr) {
             let partesLimpias = subComboStr.split('(')[0];
             let caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1130,7 +1234,6 @@
                 let partesSubP = seleccionPrint.split(" | ");
                 let sumaGanadorasP = 0;
                 partesSubP.forEach(sub => {
-                    // Evaluación unificada usando evaluarCombinacionViva
                     if (evaluarCombinacionViva(sub)) {
                         let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
                         if (matchM) {
@@ -1266,7 +1369,6 @@
 
                 let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
-                // 🌟 RENDERIZADO VISUAL EXACTO Y unificado CON EL ADMIN
                 let partesSub = seleccion.split(" | ");
                 let sumaGanadoras = 0;
                 let seleccionVisualPartes = [];
@@ -1390,7 +1492,6 @@
             let cacheKeyCaja = "macuare_caja_" + vendedorId;
             let cacheKeyTickets = "macuare_tickets_" + vendedorId;
 
-            // Primero aseguramos actualizar los resultados globales para evaluar correctamente
             cargarResultadosGlobalesAdmin();
 
             let urlCajas = `${URL_WEB_APP}?action=getCajas`;
@@ -1445,14 +1546,6 @@
             consultarCajaVendedor(vendedorId);
             cargarFechasHipodromos();
             alert("Caja y listados actualizados con éxito.");
-        }
-
-        function abrirModalCuadre() {
-            document.getElementById('modalCuadre').style.display = 'flex';
-        }
-
-        function cerrarModalCuadre() {
-            document.getElementById('modalCuadre').style.display = 'none';
         }
 
         function copiarDatosCompletos() {
