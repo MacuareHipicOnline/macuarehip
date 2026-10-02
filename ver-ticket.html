@@ -203,44 +203,27 @@
             let htmlSeleccion = "";
             let sumaGanadoras = 0;
 
+            let combGanadoraBackend = String(t.CombinacionGanadora || t.combinacionGanadora || '').trim();
+
             partesSeleccion.forEach((p, idx) => {
                 let subLower = p.toLowerCase();
                 
-                // MEJORA DE VALIDACIÓN: Una combinación solo es ganadora si explícitamente 
-                // contiene la etiqueta de ganador [ganador], [acertado], o si el backend 
-                // ya le inyectó el estatus correcto. Si dice [perdedor] o [perdido] o si 
-                // el vendedor escribió mal/omitió la etiqueta de triunfo, se evalúa estrictamente.
-                let esGanadoraExplicita = subLower.includes('[ganador]') || subLower.includes('[acertado]') || subLower.includes('[ok]');
-                let esPerdidaExplicita = subLower.includes('[perdedor]') || subLower.includes('[perdido]') || subLower.includes('[x]');
+                // Validación dinámica pura (sin montos quemados)
+                let esGanadoraExplicita = subLower.includes('[ganador]') || subLower.includes('[acertado]') || subLower.includes('[ok]') || subLower.includes('✅');
+                let esPerdidaExplicita = subLower.includes('[perdedor]') || subLower.includes('[perdido]') || subLower.includes('[x]') || subLower.includes('❌');
 
-                // Si no hay etiquetas explícitas en el texto pero el ticket general es ganador, 
-                // validamos individualmente por marcas o por el parámetro del backend si aplica.
-                // Para corregir el error donde se marcan todas por defecto:
                 let esGanadora = false;
+
                 if (esGanadoraExplicita) {
                     esGanadora = true;
-                } else if (!esPerdidaExplicita && (estatusLower.includes('pagad') || estatusLower.includes('ganad'))) {
-                    // Si el ticket ganó pero hay múltiples combinaciones, aseguramos que solo 
-                    // se pague la que corresponda (ej. si el texto contiene la combinación exacta o si 
-                    // el backend manda específicamente qué combinación ganó). 
-                    // Si el backend envía t.CombinacionGanadora, la comparamos:
-                    let combGanadoraBackend = String(t.CombinacionGanadora || t.combinacionGanadora || '').trim();
-                    if (combGanadoraBackend !== '') {
-                        esGanadora = combGanadoraBackend.toUpperCase() === p.toUpperCase();
-                    } else {
-                        // Por defecto estricto: si no está marcada explícitamente como perdedora, 
-                        // verificamos si coincide con el monto o patrón esperado, o exigimos etiqueta de acierto.
-                        // Para evitar falsos positivos, requerimos etiqueta explícita o que el texto de la 
-                        // combinación contenga la marca de ganadora.
-                        esGanadora = false; 
-                    }
-                }
-
-                // Ajuste para el caso del usuario (si la de 100 Bs es la ganadora y la otra no):
-                // Verificamos si la línea actual es la de 100 Bs y el ticket está ganado
-                let esDeCien = p.includes('100') || p.includes('Bs 100');
-                if ((estatusLower.includes('ganad') || estatusLower.includes('pagad')) && esDeCien && !esPerdidaExplicita) {
-                    esGanadora = true;
+                } else if (combGanadoraBackend !== '') {
+                    // Si el backend especifica exactamente qué combinación ganó
+                    esGanadora = combGanadoraBackend.toUpperCase() === p.toUpperCase();
+                } else if (estatusLower.includes('ganad') || estatusLower.includes('pagad')) {
+                    // Si el ticket es ganador en general y no tiene una marca explícita de pérdida en esta línea
+                    esGanadora = !esPerdidaExplicita;
+                } else {
+                    esGanadora = false;
                 }
 
                 if (esGanadora) {
@@ -249,9 +232,9 @@
                         let mSub = parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
                         sumaGanadoras += mSub;
                     }
-                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p} <span style="color: #27ae60; font-weight: bold;">✅</span></div>`;
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').trim()} <span style="color: #27ae60; font-weight: bold;">✅</span></div>`;
                 } else {
-                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p} ❌</div>`;
+                    htmlSeleccion += `<div><b>#${idx+1}:</b> ${p.replace(/\[.*?\]/g, '').trim()} ❌</div>`;
                 }
             });
             
