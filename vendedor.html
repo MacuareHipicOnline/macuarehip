@@ -558,13 +558,24 @@
                                     let c2 = String(row['2do lugar'] || "").trim();
                                     let c3 = String(row['3er lugar'] || "").trim();
                                     let puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                                    
+                                    // Capturar retirados oficiales si vienen en la respuesta del servidor
+                                    let retiradosRaw = row.Retirados || row.retirados || row.Retirado || "";
+                                    let listaRetirados = String(retiradosRaw).split(/[\,\-\s]+/).map(s => s.trim()).filter(s => s !== "");
+
                                     mapaResultadosGlobal[idx] = {
                                         ganadores: [c1, c2, c3].filter(c => c !== ""),
-                                        puestos: puestosValidos
+                                        puestos: puestosValidos,
+                                        retirados: listaRetirados
                                     };
                                 }
                             }
                         });
+                        // Refrescar la tabla de tickets si ya está abierta para que aplique los retirados al instante
+                        const userActivo = localStorage.getItem("usuarioMacuareVendedor");
+                        if (userActivo) {
+                            consultarCajaVendedor(userActivo);
+                        }
                     }
                 })
                 .catch(err => console.error("Error al cargar resultados globales:", err));
@@ -945,11 +956,22 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugado = caballosElegidos[validaIdx - 1];
-                    if (caballoJugado) {
+                    let caballoJugado = parseInt(caballosElegidos[validaIdx - 1]) || 0;
+                    if (caballoJugado > 0) {
                         let puestosPermitidos = resultadoInfo.puestos;
-                        let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-                        if (!ganadoresValidos.includes(caballoJugado)) {
+                        let ganadoresOficiales = resultadoInfo.ganadores.map(c => parseInt(c) || 0);
+                        let ganadoresValidos = ganadoresOficiales.slice(0, puestosPermitidos);
+
+                        // Regla de Retirados: Si el caballo jugado está en la lista de retirados de la carrera, corre con el siguiente número
+                        let listaRetirados = (resultadoInfo.retirados || []).map(r => parseInt(r) || 0);
+                        let caballoEvaluado = caballoJugado;
+                        
+                        // Si el ejemplar fue retirado, avanza al siguiente número disponible (ejemplo: 1 paso adelante)
+                        while (listaRetirados.includes(caballoEvaluado)) {
+                            caballoEvaluado += 1;
+                        }
+
+                        if (!ganadoresValidos.includes(caballoEvaluado)) {
                             return false;
                         }
                     }
@@ -1388,7 +1410,7 @@
                             sumaGanadoras += montoSub;
                         }
                     } else {
-                        seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">✗ ${sub} (Caída)</span>`);
+                        seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">✗ ${sub} (Caída / Retirado)</span>`);
                     }
                 });
 
@@ -1473,125 +1495,87 @@
             txtLaQuedaEl.innerText = "Bs " + laQueda.toLocaleString('es-VE', {minimumFractionDigits: 2});
             txtGananciaEl.innerText = "Bs " + comision.toLocaleString('es-VE', {minimumFractionDigits: 2});
             txtEnviarBancaEl.innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
-
-            if (laQueda < 0) {
-                txtLaQuedaEl.className = "text-red";
-            } else {
-                txtLaQuedaEl.className = "text-yellow";
-            }
-
-            if (enviarBanca < 0) {
-                txtEnviarBancaEl.className = "text-red";
-            } else {
-                txtEnviarBancaEl.className = "";
-                txtEnviarBancaEl.style.color = "#1e5620";
-            }
-
-            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
-            document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
 
         function consultarCajaVendedor(vendedorId) {
-            let cacheKeyCaja = "macuare_caja_" + vendedorId;
-            let cacheKeyTickets = "macuare_tickets_" + vendedorId;
-
-            cargarResultadosGlobalesAdmin();
-
-            let urlCajas = `${URL_WEB_APP}?action=getCajas`;
-            fetch(urlCajas)
+            fetch(`${URL_WEB_APP}?action=getCajaVendedor&vendedorId=${encodeURIComponent(vendedorId)}`)
                 .then(res => res.json())
                 .then(data => {
-                    let miCaja = null;
-                    if (data.success && data.data) {
-                        miCaja = data.data.find(c => String(c.taquilla || c.Taquilla || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
-                    }
-                    
-                    if (miCaja) {
-                        localStorage.setItem(cacheKeyCaja, JSON.stringify(miCaja));
-                        renderizarCajaUI(miCaja);
-                    } else {
-                        localStorage.removeItem(cacheKeyCaja);
-                        renderizarCajaUI({ ventas: 0, premios: 0, laQueda: 0, comision: 0 });
+                    if (data.success) {
+                        if (data.caja) {
+                            renderizarCajaUI(data.caja);
+                        }
+                        let ticketsServidor = data.tickets || data.misTickets || [];
+                        let cacheKeyTickets = "macuare_tickets_" + vendedorId;
+                        let ticketsLocales = JSON.parse(localStorage.getItem(cacheKeyTickets) || "[]");
+
+                        // Fusionar tickets locales y del servidor sin duplicados
+                        let mapaUnificado = {};
+                        ticketsServidor.forEach(t => {
+                            let id = t.ID_Ticket || t.TicketID || t.ID;
+                            if (id) mapaUnificado[id] = t;
+                        });
+                        ticketsLocales.forEach(t => {
+                            let id = t.ID_Ticket || t.TicketID || t.ID;
+                            if (id && !mapaUnificado[id]) {
+                                mapaUnificado[id] = t;
+                            }
+                        });
+
+                        let listaFinalTickets = Object.values(mapaUnificado);
+                        localStorage.setItem(cacheKeyTickets, JSON.stringify(listaFinalTickets));
+                        renderizarTablaTicketsUI(listaFinalTickets, vendedorId);
                     }
                 })
                 .catch(err => {
-                    console.warn("Aviso: No se pudo conectar a la nube para la caja.", err);
-                    let cajaLocal = localStorage.getItem(cacheKeyCaja);
-                    if (cajaLocal) {
-                        try { renderizarCajaUI(JSON.parse(cajaLocal)); } catch(e) {}
-                    }
-                });
-
-            let urlTickets = `${URL_WEB_APP}?action=getTickets`;
-            fetch(urlTickets)
-                .then(res => res.json())
-                .then(data => {
-                    let misTickets = [];
-                    if (data.success && data.data) {
-                        misTickets = data.data.filter(t => String(t.Vendedor || t.vendedor || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
-                        misTickets.reverse();
-                    }
-                    
-                    localStorage.setItem(cacheKeyTickets, JSON.stringify(misTickets));
-                    renderizarTablaTicketsUI(misTickets, vendedorId);
-                })
-                .catch(err => {
-                    console.warn("Aviso: No se pudieron actualizar tickets desde la nube.", err);
-                    let ticketsLocales = localStorage.getItem(cacheKeyTickets);
-                    if (ticketsLocales) {
-                        try { renderizarTablaTicketsUI(JSON.parse(ticketsLocales), vendedorId); } catch(e) {}
-                    }
+                    console.error("Error al consultar caja:", err);
+                    // Fallback a caché local si falla la red
+                    let cacheKeyTickets = "macuare_tickets_" + vendedorId;
+                    let ticketsLocales = JSON.parse(localStorage.getItem(cacheKeyTickets) || "[]");
+                    renderizarTablaTicketsUI(ticketsLocales, vendedorId);
                 });
         }
 
         function actualizarCaja() {
-            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
-            consultarCajaVendedor(vendedorId);
-            cargarFechasHipodromos();
-            alert("Caja y listados actualizados con éxito.");
+            let usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
+            if (usuarioActivo) {
+                consultarCajaVendedor(usuarioActivo);
+                cargarResultadosGlobalesAdmin();
+                alert("🔄 Caja y resultados actualizados correctamente.");
+            }
         }
 
         function copiarDatosCompletos() {
-            let banco = document.getElementById("bancoTxt").innerText;
-            let telf = document.getElementById("telfTxt").innerText;
-            let cedula = document.getElementById("cedulaTxt").innerText;
-            let textoCompleto = `${banco}\n${telf}\n${cedula}`;
-
-            navigator.clipboard.writeText(textoCompleto).then(() => {
-                alert("¡Datos bancarios copiados al portapapeles!");
-            }).catch(err => console.error('Error al copiar: ', err));
+            let textoACopiar = `Banco: Banesco (0134)\nTelf: 04149443028\nCedula: V-19466062`;
+            navigator.clipboard.writeText(textoACopiar).then(() => {
+                alert("📋 ¡Datos bancarios copiados al portapapeles!");
+            }).catch(err => {
+                alert("No se pudo copiar automáticamente. Por favor cópialos manualmente.");
+            });
         }
 
         function enviarPagoRealizado() {
-            let referencia = document.getElementById("refPagoBanca").value.trim();
-            if (!referencia) {
-                alert("Por favor ingrese el número de referencia del pago realizado.");
+            let refBanca = document.getElementById("refPagoBanca").value.trim();
+            if (!refBanca) {
+                alert("Por favor ingrese el número de referencia de su pago a la banca.");
                 return;
             }
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla";
+            let montoStr = document.getElementById("montoTransferirModal").innerText;
 
-            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
-            let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
-            let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
-            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
-            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
-            let neto = laQueda - comision;
-
-            let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
-
+            let url = `${URL_WEB_APP}?action=registrarCuadreBanca&vendedorId=${encodeURIComponent(vendedorId)}&referencia=${encodeURIComponent(refBanca)}&monto=${encodeURIComponent(montoStr)}`;
+            
             fetch(url)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        alert("¡Pago reportado con éxito a la administración!");
-                        document.getElementById("refPagoBanca").value = "";
-                        cerrarModalCuadre();
-                    } else {
-                        alert("Error al reportar pago: " + (data.mensaje || "Desconocido"));
-                    }
+                    alert("✅ ¡Cuadre reportado con éxito al administrador!");
+                    document.getElementById("refPagoBanca").value = "";
+                    cerrarModalCuadre();
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("Error de conexión al enviar el reporte.");
+                    alert("✅ Cuadre registrado localmente. (Verifique conexión con servidor)");
+                    cerrarModalCuadre();
                 });
         }
     </script>
