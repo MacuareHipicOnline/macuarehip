@@ -1244,7 +1244,7 @@
                         partesFormateadas.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
                     } else {
                         partesFormateadas.push(`<span style="color: #1e5620; font-weight: bold;"><b>${etiquetaSub}:</b> ${subSinEtiqueta}</span>`);
-                        let matchMonto = subSinEtiqueta.match(/\(Bs\s*([\d\.,]+)\)/i) || subSinEtiqueta.match(/\(([\d\.,]+)\)/);
+                        let matchMonto = subSinEtiqueta.match(|/\(Bs\s*([\d\.,]+)\)/i) || subSinEtiqueta.match(|/\(([\d\.,]+)\)/);
                         if (matchMonto) {
                             let montoSub = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 0;
                             sumaGanadoras += montoSub;
