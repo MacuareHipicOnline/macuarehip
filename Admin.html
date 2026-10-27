@@ -720,6 +720,7 @@
     let isTypingRefPago = false;
     let subTabValidaActual = "Valida 1";
     let mapaResultadosGlobal = {};
+    let mapaEjemplaresCarreras = {}; // Para mapear retirados por válida en tiempo real
 
     const storageSeguro = {
       getItem: function(key) {
@@ -741,6 +742,7 @@
         document.getElementById('adminPanel').classList.remove('hidden');
         document.getElementById('lblAdminUser').innerText = savedUser;
         
+        sincronizarCarrerasGenerales();
         cargarResultadosGuardados();
         cargarTopeRiesgo();
         cargarBalancesCajas();
@@ -817,20 +819,43 @@
       }, 300);
     }
 
-    function cargarResultadosGuardados() {
-      try {
-        var localCache = JSON.parse(storageSeguro.getItem('macuare_resultados_cache') || '{}');
-        for (var i = 1; i <= 6; i++) {
-          if (localCache['v' + i + '_1'] !== undefined && document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = localCache['v' + i + '_1'];
-          if (localCache['v' + i + '_2'] !== undefined && document.getElementById('v' + i + '_2')) document.getElementById('v' + i + '_2').value = localCache['v' + i + '_2'];
-          if (localCache['v' + i + '_3'] !== undefined && document.getElementById('v' + i + '_3')) document.getElementById('v' + i + '_3').value = localCache['v' + i + '_3'];
-          if (localCache['v' + i + '_puestos'] !== undefined && document.getElementById('v' + i + '_puestos')) document.getElementById('v' + i + '_puestos').value = localCache['v' + i + '_puestos'];
-        }
-      } catch(e) {}
-
-      enviarPeticion({ action: 'getResultados' }, function(res) {
+    function sincronizarCarrerasGenerales(cb) {
+      enviarPeticion({ action: 'getCarreras' }, function(res) {
         if (res && res.success && res.data) {
-          mapaResultadosGlobal = {};
+          mapaEjemplaresCarreras = {};
+          res.data.forEach(function(item) {
+            var carreraStr = String(item.carrera || "").trim();
+            var match = carreraStr.match(/(\d+)/);
+            if (match) {
+              var vIdx = parseInt(match[1]);
+              if (!mapaEjemplaresCarreras[vIdx]) mapaEjemplaresCarreras[vIdx] = [];
+              mapaEjemplaresCarreras[vIdx].push({
+                numero: parseInt(item.numero),
+                estado: String(item.estado || "").trim().toLowerCase()
+              });
+            }
+          });
+          // Ordenar ejemplares por número
+          for (var k in mapaEjemplaresCarreras) {
+            mapaEjemplaresCarreras[k].sort((a,b) => a.numero - b.numero);
+          }
+        }
+        if (cb) cb();
+      });
+    }
+
+    function cargarResultadosGuardados() {
+      enviarPeticion({ action: 'getResultados' }, function(res) {
+        mapaResultadosGlobal = {};
+        // Limpiar formulario primero si no hay datos o reiniciar
+        for (var i = 1; i <= 6; i++) {
+          if (document.getElementById('v' + i + '_1')) document.getElementById('v' + i + '_1').value = '';
+          if (document.getElementById('v' + i + '_2')) document.getElementById('v' + i + '_2').value = '';
+          if (document.getElementById('v' + i + '_3')) document.getElementById('v' + i + '_3').value = '';
+          if (document.getElementById('v' + i + '_puestos')) document.getElementById('v' + i + '_puestos').value = '3';
+        }
+
+        if (res && res.success && res.data && res.data.length > 0) {
           res.data.forEach(function(row) {
             var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
             var match = nombreValida.match(/(\d+)/);
@@ -847,14 +872,16 @@
                   puestos: puestosValidos
                 };
 
-                if (c1 !== '' && document.getElementById('v' + idx + '_1') && !document.getElementById('v' + idx + '_1').value) document.getElementById('v' + idx + '_1').value = c1;
-                if (c2 !== '' && document.getElementById('v' + idx + '_2') && !document.getElementById('v' + idx + '_2').value) document.getElementById('v' + idx + '_2').value = c2;
-                if (c3 !== '' && document.getElementById('v' + idx + '_3') && !document.getElementById('v' + idx + '_3').value) document.getElementById('v' + idx + '_3').value = c3;
-                if (puestosValidos !== '' && document.getElementById('v' + idx + '_puestos')) document.getElementById('v' + idx + '_puestos').value = puestosValidos;
+                if (document.getElementById('v' + idx + '_1')) document.getElementById('v' + idx + '_1').value = c1;
+                if (document.getElementById('v' + idx + '_2')) document.getElementById('v' + idx + '_2').value = c2;
+                if (document.getElementById('v' + idx + '_3')) document.getElementById('v' + idx + '_3').value = c3;
+                if (document.getElementById('v' + idx + '_puestos')) document.getElementById('v' + idx + '_puestos').value = puestosValidos;
               }
             }
           });
           guardarLocalmenteOptimizado();
+        } else {
+          storageSeguro.removeItem('macuare_resultados_cache');
         }
       });
     }
@@ -940,6 +967,7 @@
           document.getElementById('adminPanel').classList.remove('hidden');
           document.getElementById('lblAdminUser').innerText = nombreUsuarioValido;
           
+          sincronizarCarrerasGenerales();
           cargarResultadosGuardados();
           cargarTopeRiesgo();
           cargarBalancesCajas();
@@ -964,21 +992,23 @@
         var panelAdmin = document.getElementById('adminPanel');
         if (!panelAdmin || panelAdmin.classList.contains('hidden') || document.hidden || isTypingRefPago) return;
 
-        if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
-          cargarDatosCarreras();
-        } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
-          cargarDatosPagoMovil();
-        } else if (!document.getElementById('tabCajas').classList.contains('hidden')) {
-          cargarBalancesCajas();
-        } else if (!document.getElementById('tabEstadisticas').classList.contains('hidden')) {
-          cargarDatosEstadisticas();
-          cargarDatosTicketsAudit();
-          cargarTopeRiesgo();
-        } else if (!document.getElementById('tabUsuarios').classList.contains('hidden')) {
-          cargarUsuariosSistema();
-        } else if (!document.getElementById('tabProcesar').classList.contains('hidden')) {
-          cargarResultadosGuardados();
-        }
+        sincronizarCarrerasGenerales(function() {
+          if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
+            cargarDatosCarreras();
+          } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
+            cargarDatosPagoMovil();
+          } else if (!document.getElementById('tabCajas').classList.contains('hidden')) {
+            cargarBalancesCajas();
+          } else if (!document.getElementById('tabEstadisticas').classList.contains('hidden')) {
+            cargarDatosEstadisticas();
+            cargarDatosTicketsAudit();
+            cargarTopeRiesgo();
+          } else if (!document.getElementById('tabUsuarios').classList.contains('hidden')) {
+            cargarUsuariosSistema();
+          } else if (!document.getElementById('tabProcesar').classList.contains('hidden')) {
+            cargarResultadosGuardados();
+          }
+        });
       }, 30000);
     }
 
@@ -992,16 +1022,18 @@
       document.getElementById(tabId).classList.remove('hidden');
       btnElement.classList.add('active');
 
-      if (tabId === 'tabCarreras') cargarDatosCarreras();
-      if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
-      if (tabId === 'tabCajas') cargarBalancesCajas();
-      if (tabId === 'tabEstadisticas') {
-        cargarDatosEstadisticas();
-        cargarDatosTicketsAudit();
-        cargarTopeRiesgo();
-      }
-      if (tabId === 'tabUsuarios') cargarUsuariosSistema();
-      if (tabId === 'tabProcesar') cargarResultadosGuardados();
+      sincronizarCarrerasGenerales(function() {
+        if (tabId === 'tabCarreras') cargarDatosCarreras();
+        if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
+        if (tabId === 'tabCajas') cargarBalancesCajas();
+        if (tabId === 'tabEstadisticas') {
+          cargarDatosEstadisticas();
+          cargarDatosTicketsAudit();
+          cargarTopeRiesgo();
+        }
+        if (tabId === 'tabUsuarios') cargarUsuariosSistema();
+        if (tabId === 'tabProcesar') cargarResultadosGuardados();
+      });
     }
 
     function guardarValidaIndividual(numValida) {
@@ -1082,7 +1114,7 @@
         mostrarAlerta((res && res.message) ? res.message : "¡Registrado!", "success", 4000);
         document.getElementById('nuevoNumero').value = '';
         document.getElementById('nuevoEjemplar').value = '';
-        cargarDatosCarreras();
+        sincronizarCarrerasGenerales(cargarDatosCarreras);
       });
     }
 
@@ -1090,7 +1122,7 @@
       mostrarAlerta("Retirando ejemplar...", "success", 0);
       enviarPeticion({ action: 'retirarEjemplar', carrera: carrera, numero: numero }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Retirado con éxito!", "success", 4000);
-        cargarDatosCarreras();
+        sincronizarCarrerasGenerales(cargarDatosCarreras);
       });
     }
 
@@ -1434,6 +1466,32 @@
       }, 200);
     }
 
+    // LÓGICA RETIRADO CORRE CON EL SIGUIENTE NÚMERO
+    function obtenerNumeroEfectivo(validaIdx, caballoJugadoStr) {
+      var numJugado = parseInt(caballoJugadoStr);
+      var listaEjemplares = mapaEjemplaresCarreras[validaIdx];
+      if (!listaEjemplares || listaEjemplares.length === 0) return caballoJugadoStr;
+
+      var ejElegido = listaEjemplares.find(e => e.numero === numJugado);
+      if (!ejElegido || !ejElegido.estado.includes('retirad')) {
+        return caballoJugadoStr; // No está retirado, corre normal
+      }
+
+      // Si está retirado, buscar el número activo subsiguiente
+      var activosPosteriores = listaEjemplares.filter(e => e.numero > numJugado && !e.estado.includes('retirad'));
+      if (activosPosteriores.length > 0) {
+        return String(activosPosteriores[0].numero);
+      }
+
+      // Si no hay posterior, tomar el primer activo disponible
+      var todosActivos = listaEjemplares.filter(e => !e.estado.includes('retirad'));
+      if (todosActivos.length > 0) {
+        return String(todosActivos[0].numero);
+      }
+
+      return caballoJugadoStr;
+    }
+
     function evaluarCombinacionViva(subComboStr) {
       var partesLimpias = subComboStr.split('(')[0];
       var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1443,9 +1501,11 @@
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
           var caballoJugado = caballosElegidos[validaIdx - 1];
           if (caballoJugado) {
+            var caballoEfectivo = obtenerNumeroEfectivo(validaIdx, caballoJugado);
             var puestosPermitidos = resultadoInfo.puestos;
             var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-            if (!ganadoresValidos.includes(caballoJugado)) {
+            
+            if (!ganadoresValidos.includes(caballoEfectivo)) {
               return false;
             }
           }
