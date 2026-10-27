@@ -167,6 +167,7 @@
             box-shadow: 0 2px 8px rgba(35, 82, 36, 0.3);
         }
 
+        /* Contenido de Pestañas */
         .tab-content {
             display: none;
         }
@@ -300,10 +301,6 @@
             transform: scale(1.05);
         }
 
-        /* Clases de bloqueo dinámico para Retirados y Fuera de Rango */
-        .num-btn.retirado { background-color: #fadbd8 !important; color: #c0392b !important; border-color: #e74c3c !important; text-decoration: line-through; opacity: 0.7; cursor: not-allowed; }
-        .num-btn.fuera-rango { background-color: #e5e8e8 !important; color: #95a5a6 !important; border-color: #bdc3c7 !important; opacity: 0.35; cursor: not-allowed; pointer-events: none; }
-
         .summary-row {
             display: flex;
             justify-content: space-between;
@@ -366,6 +363,7 @@
             background-color: rgba(197, 155, 39, 0.3) !important;
         }
 
+        /* Insignias de Estatus Estilizadas */
         .badge-estatus {
             padding: 5px 10px;
             border-radius: 20px;
@@ -571,8 +569,6 @@
 
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
         let mapaResultadosGlobal = {};
-        let caballosRetiradosMapa = {};
-        let maxCaballosPorValida = {};
 
         window.addEventListener('DOMContentLoaded', () => {
             const usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
@@ -585,9 +581,8 @@
             cargarFechasHipodromos();
             cargarResultadosGlobalesAdmin();
             construirSelectoresValidas();
-            sincronizarEjemplaresRetirados();
 
-            // Actualización automática cada 10 segundos
+            // Actualización automática cada 10 segundos si el usuario ya inició sesión
             setInterval(() => {
                 const userActivo = localStorage.getItem("usuarioMacuareVendedor");
                 if (userActivo) {
@@ -595,76 +590,8 @@
                 }
                 cargarFechasHipodromos();
                 cargarResultadosGlobalesAdmin();
-                sincronizarEjemplaresRetirados();
             }, 10000);
         });
-
-        function sincronizarEjemplaresRetirados() {
-            let hipodromoActual = document.getElementById("hipodromoSeleccion").value;
-            fetch(`${URL_WEB_APP}?action=getCarreras`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.data) {
-                        caballosRetiradosMapa = {};
-                        maxCaballosPorValida = {};
-
-                        data.data.forEach(c => {
-                            let hipo = String(c.Hipodromo || c.hipodromo || "").trim();
-                            if (hipo.toLowerCase() === hipodromoActual.toLowerCase()) {
-                                let carrera = String(c.Carrera || c.carrera || "").trim();
-                                let match = carrera.match(/(\d+)/);
-                                let estado = String(c.Estado || c.estado || "").trim().toLowerCase();
-                                let numero = parseInt(c.Numero || c.numero || 0);
-
-                                if (match && numero > 0) {
-                                    let vIdx = parseInt(match[1]);
-                                    
-                                    if (!maxCaballosPorValida[vIdx] || numero > maxCaballosPorValida[vIdx]) {
-                                        maxCaballosPorValida[vIdx] = numero;
-                                    }
-
-                                    if (!caballosRetiradosMapa[vIdx]) caballosRetiradosMapa[vIdx] = [];
-                                    if (estado.includes('retirado')) {
-                                        caballosRetiradosMapa[vIdx].push(String(numero));
-                                    }
-                                }
-                            }
-                        });
-                        actualizarVisualBotones();
-                    }
-                }).catch(err => console.error("Error sincronizando carreras y retiros:", err));
-        }
-
-        function actualizarVisualBotones() {
-            for (let i = 1; i <= 6; i++) {
-                let retiradosValida = caballosRetiradosMapa[i] || [];
-                let maxCaballos = maxCaballosPorValida[i] || 14;
-
-                for (let num = 1; num <= 14; num++) {
-                    let btn = document.getElementById(`btn_v${i}_${num}`);
-                    if (btn) {
-                        if (num > maxCaballos) {
-                            btn.classList.add('fuera-rango');
-                            btn.classList.remove('retirado');
-                            if (seleccionValidasActual[i] === String(num)) {
-                                seleccionValidasActual[i] = '';
-                                document.getElementById(`labelSelV${i}`).innerText = "Seleccionado: --";
-                            }
-                        } else if (retiradosValida.includes(String(num))) {
-                            btn.classList.add('retirado');
-                            btn.classList.remove('fuera-rango');
-                            if (seleccionValidasActual[i] === String(num)) {
-                                seleccionValidasActual[i] = '';
-                                document.getElementById(`labelSelV${i}`).innerText = "Seleccionado: --";
-                            }
-                        } else {
-                            btn.classList.remove('retirado');
-                            btn.classList.remove('fuera-rango');
-                        }
-                    }
-                }
-            }
-        }
 
         function cargarResultadosGlobalesAdmin() {
             fetch(`${URL_WEB_APP}?action=getResultados`)
@@ -816,7 +743,7 @@
                 </div>
                 <div class="form-group">
                     <label style="color: #1e5620;">🐎 Hipódromo</label>
-                    <select id="hipodromoSeleccion" onchange="sincronizarEjemplaresRetirados()">
+                    <select id="hipodromoSeleccion">
                         <option value="La Rinconada">La Rinconada</option>
                         <option value="Valencia">Valencia</option>
                     </select>
@@ -824,8 +751,9 @@
             </div>
 
             <h2 style="margin-top: 25px;">2. Seleccionar Combinaciones al Mismo Ticket</h2>
-            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Los retirados aparecen tachados en rojo y los no inscritos desactivados.</p>
+            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Agregue tantas jugadas como desee para este cliente.</p>
 
+            <!-- Contenedor dinámico de botones de Válidas -->
             <div id="contenedorSelectoresValidas"></div>
             
             <div class="form-grid" style="margin-top: 15px;">
@@ -1049,7 +977,7 @@
                     <div class="valida-buttons" id="botonesV${i}">`;
                 
                 for (let num = 1; num <= 14; num++) {
-                    html += `<button type="button" class="num-btn" id="btn_v${i}_${num}" onclick="seleccionarCaballo(${i}, ${num})">${num}</button>`;
+                    html += `<button type="button" class="num-btn" onclick="seleccionarCaballo(${i}, ${num})">${num}</button>`;
                 }
                 
                 html += `</div></div>`;
@@ -1058,18 +986,6 @@
         }
 
         function seleccionarCaballo(validaIdx, numero) {
-            let maxCaballos = maxCaballosPorValida[validaIdx] || 14;
-            let retiradosValida = caballosRetiradosMapa[validaIdx] || [];
-
-            if (numero > maxCaballos) {
-                alert(`⚠️ El ejemplar N° ${numero} no está inscrito en esta carrera (máximo ${maxCaballos} caballos).`);
-                return;
-            }
-            if (retiradosValida.includes(String(numero))) {
-                alert(`⚠️ El ejemplar N° ${numero} se encuentra RETIRADO y no puede ser seleccionado.`);
-                return;
-            }
-
             seleccionValidasActual[validaIdx] = String(numero);
             document.getElementById(`labelSelV${validaIdx}`).innerText = `Seleccionado: #${numero}`;
             
@@ -1127,25 +1043,12 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugadoOriginal = parseInt(caballosElegidos[validaIdx - 1]);
-                    if (!isNaN(caballoJugadoOriginal)) {
-                        
-                        // REGLA HÍPICA DE RETIRADOS: Si el caballo fue retirado, corre con el siguiente número disponible
-                        let caballoEfectivo = caballoJugadoOriginal;
-                        let retiradosValida = (caballosRetiradosMapa[validaIdx] || []).map(num => parseInt(num));
-                        let maxCaballos = maxCaballosPorValida[validaIdx] || 14;
-                        
-                        while (retiradosValida.includes(caballoEfectivo) && caballoEfectivo <= maxCaballos) {
-                            caballoEfectivo++; // Pasa al siguiente número (ej: del 8 retirado pasa a correr con el 9)
-                        }
-
-                        let caballoEfectivoStr = String(caballoEfectivo);
+                    let caballoJugado = caballosElegidos[validaIdx - 1];
+                    if (caballoJugado) {
                         let puestosPermitidos = resultadoInfo.puestos;
                         let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-
-                        // Comprobamos si el caballo efectivo (o el corrido) entró en el marcador oficial de puestos
-                        if (!ganadoresValidos.includes(caballoEfectivoStr)) {
-                            return false; // Si no entró, se marca con caída estándar
+                        if (!ganadoresValidos.includes(caballoJugado)) {
+                            return false;
                         }
                     }
                 }
@@ -1738,7 +1641,6 @@
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
             consultarCajaVendedor(vendedorId);
             cargarFechasHipodromos();
-            sincronizarEjemplaresRetirados();
             alert("Caja y listados actualizados con éxito.");
         }
 
