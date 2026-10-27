@@ -693,6 +693,7 @@
   </div>
 
   <script>
+    /* CAPA DE SEGURIDAD ANTICOPIN / INSPECCIÓN */
     document.addEventListener('contextmenu', function(e) {
       e.preventDefault();
     });
@@ -1274,31 +1275,22 @@
           var html = '';
           res.data.forEach(item => {
             var taquilla = item.taquilla || item.Taquilla || 'N/D';
-            
-            // Re-cálculo simétrico y unificado con la lógica del vendedor
-            var ventasVal = parseNum(item.ventas || item.Ventas || 0);
-            var premiosVal = parseNum(item.premios || item.Premios || 0);
-            var laQuedaVal = ventasVal - premiosVal;
-            
-            var comisionVal = (laQuedaVal > 0) ? (laQuedaVal * 0.30) : 0;
-            var netoVal = (laQuedaVal > 0) ? (laQuedaVal - comisionVal) : ventasVal;
-
-            var ventasStr = ventasVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            var premiosStr = premiosVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            var laQuedaStr = laQuedaVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            var comisionStr = comisionVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            var netoStr = netoVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-
+            var ventas = item.ventas || item.Ventas || '0,00';
+            var premios = item.premios || item.Premios || '0,00';
+            var laQueda = item.laQueda || item.LaQueda || '0,00';
+            var comision = item.comision || item.Comision || '0,00';
+            var netoStr = item.neto || item.Neto || item['Neto a Entregar'] || '0,00';
             var referencia = item.referenciaPago || item.referencia || item['Referencia Pago'] || 'Sin Ref';
             var estatus = item.estatus || item.Estatus || 'PENDIENTE';
             var estatusLower = String(estatus).toLowerCase();
             
-            var estiloNeto = netoVal < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
+            var netoNum = parseFloat(String(netoStr).replace(/\./g, '').replace(',', '.')) || 0;
+            var estiloNeto = netoNum < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
 
             var badgeEstatus = estatusLower.includes('verificado') ? '<span class="badge-verificado">✓ VERIF.</span>' : (estatusLower.includes('aprobado') ? '<span class="badge-activo">Aprob.</span>' : '<span class="badge-retirado" style="background: rgba(212, 175, 55, 0.2); color: var(--accent);">Pend.</span>');
             var btnAprobar = estatusLower.includes('aprobado') || estatusLower.includes('verificado') ? '<button class="btn-danger" disabled style="background: rgba(100, 116, 139, 0.3);">Listo</button>' : '<button class="btn-accent" style="padding: 5px 8px; font-size: 0.75rem; width: auto; margin: 0;" onclick="confirmarAccion(\'aprobar_balance\', \'¿Aprobar balance de ' + taquilla + '?\', function() { aprobarBalanceTaquilla(\'' + taquilla + '\'); })">Aprobar</button>';
 
-            html += '<tr><td><b>' + taquilla + '</b></td><td>' + ventasStr + '</td><td>' + premiosStr + '</td><td>' + laQuedaStr + '</td><td>' + comisionStr + '</td><td style="' + estiloNeto + '">' + netoStr + '</td><td style="color: var(--text-muted); font-size: 0.8rem;">' + referencia + '</td><td>' + badgeEstatus + '</td><td>' + btnAprobar + '</td></tr>';
+            html += '<tr><td><b>' + taquilla + '</b></td><td>' + ventas + '</td><td>' + premios + '</td><td>' + laQueda + '</td><td>' + comision + '</td><td style="' + estiloNeto + '">' + netoStr + '</td><td style="color: var(--text-muted); font-size: 0.8rem;">' + referencia + '</td><td>' + badgeEstatus + '</td><td>' + btnAprobar + '</td></tr>';
           });
           tbody.innerHTML = html;
         } else {
@@ -1340,30 +1332,25 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(item => {
-          // Re-cálculo simétrico y unificado con la lógica del vendedor para estadísticas
-          var ventasVal = parseNum(item.ventas || item.Ventas || 0);
-          var premiosVal = parseNum(item.premios || item.Premios || 0);
-          var laQuedaVal = ventasVal - premiosVal;
-          
-          var comisionVal = (laQuedaVal > 0) ? (laQuedaVal * 0.30) : 0;
-          var netoVal = (laQuedaVal > 0) ? (laQuedaVal - comisionVal) : ventasVal;
+          var ventasStr = item.ventas || item.Ventas || '0,00';
+          var premiosStr = item.premios || item.Premios || '0,00';
+          var laQuedaStr = item.laQueda || item.LaQueda || '0,00';
+          var comisionStr = item.comision || item.Comision || '0,00';
+          var netoStr = item.netoSistema || item.neto || item.Neto || '0,00';
 
-          tVentas += ventasVal; 
-          tPremios += premiosVal; 
-          tComisiones += comisionVal; 
-          tNeto += netoVal;
+          var ventas = parseNum(ventasStr);
+          var premios = parseNum(premiosStr);
+          var laQueda = parseNum(laQuedaStr);
+          var comision = parseNum(comisionStr);
+          var neto = parseNum(netoStr);
 
-          var ventasStr = ventasVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-          var premiosStr = premiosVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-          var laQuedaStr = laQuedaVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-          var comisionStr = comisionVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
-          var netoStr = netoVal.toLocaleString('es-VE', {minimumFractionDigits: 2});
+          tVentas += ventas; tPremios += premios; tComisiones += comision; tNeto += neto;
 
-          var styleVentas = ventasVal < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var styleVentas = ventas < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
           var stylePremios = 'color: var(--error-text);';
-          var styleLaQueda = laQuedaVal < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
-          var styleComision = comisionVal < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
-          var styleNeto = netoVal < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
+          var styleLaQueda = laQueda < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var styleComision = comision < 0 ? 'color: var(--error-text);' : 'color: var(--success-text);';
+          var styleNeto = neto < 0 ? 'font-weight: bold; color: var(--error-text);' : 'font-weight: bold; color: var(--success-text);';
 
           html += '<tr>' +
             '<td>' + (item.taquilla || item.Taquilla || 'N/D') + '</td>' +
