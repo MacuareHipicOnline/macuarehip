@@ -38,8 +38,9 @@
         .num-btn { width: 38px; height: 38px; background-color: #ffffff; border: 2px solid #bfae91; color: #1f2e20; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
         .num-btn.selected { background-color: #235224; color: #ffffff; border-color: #142417; transform: scale(1.05); }
         
-        /* Estilo para caballos retirados sincronizados en tiempo real */
+        /* Estilos para caballos retirados o fuera de rango */
         .num-btn.retirado { background-color: #fadbd8 !important; color: #c0392b !important; border-color: #e74c3c !important; text-decoration: line-through; opacity: 0.6; cursor: not-allowed; }
+        .num-btn.fuera-rango { background-color: #e5e8e8 !important; color: #95a5a6 !important; border-color: #bdc3c7 !important; opacity: 0.3; cursor: not-allowed; pointer-events: none; }
 
         .summary-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e8e2d3; font-size: 15px; color: #2c3a2e; font-weight: 600; }
         .text-green { color: #1e5620; font-weight: 700; }
@@ -49,9 +50,6 @@
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         th, td { padding: 12px; border-bottom: 1px solid #e2dac9; }
         th { background-color: #142417; color: #d4c5a9; position: sticky; top: 0; z-index: 10; }
-        .badge-estatus { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; text-align: center; }
-        .badge-pendiente { background-color: #fcf3cf; color: #9a7b0c; }
-        .badge-pagado { background-color: #d4efdf; color: #196f3d; }
     </style>
 </head>
 <body>
@@ -106,7 +104,7 @@
             </div>
 
             <h2>2. Seleccionar Combinaciones (Validadas en Vivo)</h2>
-            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px;">Los caballos marcados en rojo con línea cruzada están <b>Retirados</b> por el Administrador y no pueden seleccionarse.</p>
+            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px;">Los caballos en rojo con línea están <b>Retirados</b> y los grises oscuros superan el cupo de inscritos de la carrera.</p>
 
             <div id="contenedorSelectoresValidas"></div>
             
@@ -154,6 +152,7 @@
         let seleccionValidasActual = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
         let listaJugadasActuales = [];
         let caballosRetiradosMapa = {};
+        let maxCaballosPorValida = {}; // Almacena el número máximo de caballos inscritos por válida
 
         window.addEventListener('DOMContentLoaded', () => {
             const usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
@@ -164,7 +163,7 @@
             }
             construirSelectoresValidas();
             sincronizarEjemplaresRetirados();
-            setInterval(sincronizarEjemplaresRetirados, 15000); // Sincroniza retiros cada 15 segundos
+            setInterval(sincronizarEjemplaresRetirados, 15000); // Sincroniza cada 15 segundos
         });
 
         function construirSelectoresValidas() {
@@ -192,42 +191,66 @@
                 .then(data => {
                     if (data.success && data.data) {
                         caballosRetiradosMapa = {};
+                        maxCaballosPorValida = {};
+
                         data.data.forEach(c => {
                             let hipo = String(c.Hipodromo || c.hipodromo || "").trim();
                             if (hipo.toLowerCase() === hipodromoActual.toLowerCase()) {
                                 let carrera = String(c.Carrera || c.carrera || "").trim();
                                 let match = carrera.match(/(\d+)/);
                                 let estado = String(c.Estado || c.estado || "").trim().toLowerCase();
-                                let numero = String(c.Numero || c.numero || "").trim();
+                                let numero = parseInt(c.Numero || c.numero || 0);
 
-                                if (match && numero) {
+                                if (match && numero > 0) {
                                     let vIdx = parseInt(match[1]);
+                                    
+                                    // Registrar el número de caballo más alto registrado para esta válida
+                                    if (!maxCaballosPorValida[vIdx] || numero > maxCaballosPorValida[vIdx]) {
+                                        maxCaballosPorValida[vIdx] = numero;
+                                    }
+
                                     if (!caballosRetiradosMapa[vIdx]) caballosRetiradosMapa[vIdx] = [];
                                     if (estado.includes('retirado')) {
-                                        caballosRetiradosMapa[vIdx].push(numero);
+                                        caballosRetiradosMapa[vIdx].push(String(numero));
                                     }
                                 }
                             }
                         });
-                        actualizarVisualRetirados();
+                        actualizarVisualBotones();
                     }
-                }).catch(err => console.error("Error sincronizando retiros:", err));
+                }).catch(err => console.error("Error sincronizando carreras:", err));
         }
 
-        function actualizarVisualRetirados() {
+        function actualizarVisualBotones() {
             for (let i = 1; i <= 6; i++) {
                 let retiradosValida = caballosRetiradosMapa[i] || [];
+                let maxCaballos = maxCaballosPorValida[i] || 14; // Por defecto 14 si no hay registros
+
                 for (let num = 1; num <= 14; num++) {
                     let btn = document.getElementById(`btn_v${i}_${num}`);
                     if (btn) {
-                        if (retiradosValida.includes(String(num))) {
-                            btn.classList.add('retirado');
+                        // 1. Verificar si supera el límite de inscritos de la carrera
+                        if (num > maxCaballos) {
+                            btn.classList.add('fuera-rango');
+                            btn.classList.remove('retirado');
                             if (seleccionValidasActual[i] === String(num)) {
                                 seleccionValidasActual[i] = '';
                                 document.getElementById(`labelSelV${i}`).innerText = "Seleccionado: --";
                             }
-                        } else {
+                        } 
+                        // 2. Verificar si está retirado
+                        else if (retiradosValida.includes(String(num))) {
+                            btn.classList.add('retirado');
+                            btn.classList.remove('fuera-rango');
+                            if (seleccionValidasActual[i] === String(num)) {
+                                seleccionValidasActual[i] = '';
+                                document.getElementById(`labelSelV${i}`).innerText = "Seleccionado: --";
+                            }
+                        } 
+                        // 3. Disponible con normalidad
+                        else {
                             btn.classList.remove('retirado');
+                            btn.classList.remove('fuera-rango');
                         }
                     }
                 }
@@ -235,7 +258,13 @@
         }
 
         function seleccionarCaballo(validaIdx, numero) {
+            let maxCaballos = maxCaballosPorValida[validaIdx] || 14;
             let retiradosValida = caballosRetiradosMapa[validaIdx] || [];
+
+            if (numero > maxCaballos) {
+                alert(`⚠️ El ejemplar N° ${numero} no está inscrito en esta carrera (máximo ${maxCaballos} caballos).`);
+                return;
+            }
             if (retiradosValida.includes(String(numero))) {
                 alert(`⚠️ El ejemplar N° ${numero} se encuentra RETIRADO y no puede ser seleccionado.`);
                 return;
