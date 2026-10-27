@@ -251,6 +251,56 @@
         .btn-primary:hover {
             background-color: #183c19;
         }
+
+        /* Estilo para los botones de selección de válidas */
+        .valida-box {
+            background: #fdfbf7;
+            border: 1px solid #d4c5a9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        .valida-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #73502b;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .valida-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .num-btn {
+            width: 36px;
+            height: 36px;
+            background-color: #ffffff;
+            border: 2px solid #bfae91;
+            color: #1f2e20;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .num-btn:hover {
+            border-color: #235224;
+            background-color: #f4f0e6;
+        }
+        .num-btn.selected {
+            background-color: #235224;
+            color: #ffffff;
+            border-color: #142417;
+            box-shadow: 0 2px 5px rgba(35, 82, 36, 0.3);
+            transform: scale(1.05);
+        }
+
         .summary-row {
             display: flex;
             justify-content: space-between;
@@ -530,6 +580,7 @@
             }
             cargarFechasHipodromos();
             cargarResultadosGlobalesAdmin();
+            construirSelectoresValidas();
 
             // Actualización automática cada 10 segundos si el usuario ya inició sesión
             setInterval(() => {
@@ -558,24 +609,13 @@
                                     let c2 = String(row['2do lugar'] || "").trim();
                                     let c3 = String(row['3er lugar'] || "").trim();
                                     let puestosValidos = parseInt(row.puestosValidos || '3') || 3;
-                                    
-                                    // Capturar retirados oficiales si vienen en la respuesta del servidor
-                                    let retiradosRaw = row.Retirados || row.retirados || row.Retirado || "";
-                                    let listaRetirados = String(retiradosRaw).split(/[\,\-\s]+/).map(s => s.trim()).filter(s => s !== "");
-
                                     mapaResultadosGlobal[idx] = {
                                         ganadores: [c1, c2, c3].filter(c => c !== ""),
-                                        puestos: puestosValidos,
-                                        retirados: listaRetirados
+                                        puestos: puestosValidos
                                     };
                                 }
                             }
                         });
-                        // Refrescar la tabla de tickets si ya está abierta para que aplique los retirados al instante
-                        const userActivo = localStorage.getItem("usuarioMacuareVendedor");
-                        if (userActivo) {
-                            consultarCajaVendedor(userActivo);
-                        }
                     }
                 })
                 .catch(err => console.error("Error al cargar resultados globales:", err));
@@ -710,19 +750,13 @@
                 </div>
             </div>
 
-            <h2 style="margin-top: 25px;">2. Agregar Combinaciones al Mismo Ticket</h2>
-            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Agregue tantas jugadas como desee para este cliente. Si alguna excede el cupo, todo el boleto se bloqueará para su revisión.</p>
+            <h2 style="margin-top: 25px;">2. Seleccionar Combinaciones al Mismo Ticket</h2>
+            <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Agregue tantas jugadas como desee para este cliente.</p>
 
-            <div class="form-grid">
-                <div class="form-group"><input type="text" id="v1" placeholder="1ª Válida (Ej: 12)"></div>
-                <div class="form-group"><input type="text" id="v2" placeholder="2ª Válida"></div>
-                <div class="form-group"><input type="text" id="v3" placeholder="3ª Válida"></div>
-                <div class="form-group"><input type="text" id="v4" placeholder="4ª Válida"></div>
-                <div class="form-group"><input type="text" id="v5" placeholder="5ª Válida"></div>
-                <div class="form-group"><input type="text" id="v6" placeholder="6ª Válida"></div>
-            </div>
+            <!-- Contenedor dinámico de botones de Válidas -->
+            <div id="contenedorSelectoresValidas"></div>
             
-            <div class="form-grid">
+            <div class="form-grid" style="margin-top: 15px;">
                 <div class="form-group">
                     <label>Monto Individual de esta Jugada (Bs)</label>
                     <input type="number" id="montoJugadaIndividual" placeholder="0.00">
@@ -926,6 +960,59 @@
     <script>
         let listaJugadasActuales = [];
         let indicesJugadasConTopeExcedido = [];
+        let seleccionValidasActual = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+
+        function construirSelectoresValidas() {
+            let contenedor = document.getElementById("contenedorSelectoresValidas");
+            if (!contenedor) return;
+            let html = "";
+            let ordinales = ["1ª Válida", "2ª Válida", "3ª Válida", "4ª Válida", "5ª Válida", "6ª Válida"];
+            
+            for (let i = 1; i <= 6; i++) {
+                html += `<div class="valida-box">
+                    <div class="valida-title">
+                        <span>${ordinales[i-1]}</span>
+                        <span id="labelSelV${i}" style="color: #1e5620; font-weight: bold;">Seleccionado: --</span>
+                    </div>
+                    <div class="valida-buttons" id="botonesV${i}">`;
+                
+                for (let num = 1; num <= 14; num++) {
+                    html += `<button type="button" class="num-btn" onclick="seleccionarCaballo(${i}, ${num})">${num}</button>`;
+                }
+                
+                html += `</div></div>`;
+            }
+            contenedor.innerHTML = html;
+        }
+
+        function seleccionarCaballo(validaIdx, numero) {
+            seleccionValidasActual[validaIdx] = String(numero);
+            document.getElementById(`labelSelV${validaIdx}`).innerText = `Seleccionado: #${numero}`;
+            
+            let contenedorBtns = document.getElementById(`botonesV${validaIdx}`);
+            let botones = contenedorBtns.getElementsByClassName("num-btn");
+            for (let btn of botones) {
+                if (parseInt(btn.innerText) === numero) {
+                    btn.classList.add("selected");
+                } else {
+                    btn.classList.remove("selected");
+                }
+            }
+        }
+
+        function limpiarSeleccionActual() {
+            seleccionValidasActual = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`labelSelV${i}`).innerText = "Seleccionado: --";
+                let contenedorBtns = document.getElementById(`botonesV${i}`);
+                if (contenedorBtns) {
+                    let botones = contenedorBtns.getElementsByClassName("num-btn");
+                    for (let btn of botones) {
+                        btn.classList.remove("selected");
+                    }
+                }
+            }
+        }
 
         function abrirModalCuadre() {
             let m = document.getElementById('modalCuadre');
@@ -956,22 +1043,11 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugado = parseInt(caballosElegidos[validaIdx - 1]) || 0;
-                    if (caballoJugado > 0) {
+                    let caballoJugado = caballosElegidos[validaIdx - 1];
+                    if (caballoJugado) {
                         let puestosPermitidos = resultadoInfo.puestos;
-                        let ganadoresOficiales = resultadoInfo.ganadores.map(c => parseInt(c) || 0);
-                        let ganadoresValidos = ganadoresOficiales.slice(0, puestosPermitidos);
-
-                        // Regla de Retirados: Si el caballo jugado está en la lista de retirados de la carrera, corre con el siguiente número
-                        let listaRetirados = (resultadoInfo.retirados || []).map(r => parseInt(r) || 0);
-                        let caballoEvaluado = caballoJugado;
-                        
-                        // Si el ejemplar fue retirado, avanza al siguiente número disponible (ejemplo: 1 paso adelante)
-                        while (listaRetirados.includes(caballoEvaluado)) {
-                            caballoEvaluado += 1;
-                        }
-
-                        if (!ganadoresValidos.includes(caballoEvaluado)) {
+                        let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+                        if (!ganadoresValidos.includes(caballoJugado)) {
                             return false;
                         }
                     }
@@ -981,16 +1057,16 @@
         }
 
         function agregarFilaJugada() {
-            let v1 = document.getElementById("v1").value.trim();
-            let v2 = document.getElementById("v2").value.trim();
-            let v3 = document.getElementById("v3").value.trim();
-            let v4 = document.getElementById("v4").value.trim();
-            let v5 = document.getElementById("v5").value.trim();
-            let v6 = document.getElementById("v6").value.trim();
+            let v1 = seleccionValidasActual[1];
+            let v2 = seleccionValidasActual[2];
+            let v3 = seleccionValidasActual[3];
+            let v4 = seleccionValidasActual[4];
+            let v5 = seleccionValidasActual[5];
+            let v6 = seleccionValidasActual[6];
             let monto = parseFloat(document.getElementById("montoJugadaIndividual").value) || 0;
 
             if (!v1 || !v2 || !v3 || !v4 || !v5 || !v6) {
-                alert("Debe completar los 6 ejemplares de esta jugada.");
+                alert("Debe seleccionar un ejemplar para cada una de las 6 válidas.");
                 return;
             }
             if (monto <= 0) {
@@ -1005,12 +1081,7 @@
                 monto: monto
             });
 
-            document.getElementById("v1").value = "";
-            document.getElementById("v2").value = "";
-            document.getElementById("v3").value = "";
-            document.getElementById("v4").value = "";
-            document.getElementById("v5").value = "";
-            document.getElementById("v6").value = "";
+            limpiarSeleccionActual();
             document.getElementById("montoJugadaIndividual").value = "";
 
             indicesJugadasConTopeExcedido = [];
@@ -1410,7 +1481,7 @@
                             sumaGanadoras += montoSub;
                         }
                     } else {
-                        seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">✗ ${sub} (Caída / Retirado)</span>`);
+                        seleccionVisualPartes.push(`<span style="text-decoration: line-through; color: #a93226; opacity: 0.85;">✗ ${sub} (Caída)</span>`);
                     }
                 });
 
@@ -1495,87 +1566,125 @@
             txtLaQuedaEl.innerText = "Bs " + laQueda.toLocaleString('es-VE', {minimumFractionDigits: 2});
             txtGananciaEl.innerText = "Bs " + comision.toLocaleString('es-VE', {minimumFractionDigits: 2});
             txtEnviarBancaEl.innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
+
+            if (laQueda < 0) {
+                txtLaQuedaEl.className = "text-red";
+            } else {
+                txtLaQuedaEl.className = "text-yellow";
+            }
+
+            if (enviarBanca < 0) {
+                txtEnviarBancaEl.className = "text-red";
+            } else {
+                txtEnviarBancaEl.className = "";
+                txtEnviarBancaEl.style.color = "#1e5620";
+            }
+
+            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
+            document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
 
         function consultarCajaVendedor(vendedorId) {
-            fetch(`${URL_WEB_APP}?action=getCajaVendedor&vendedorId=${encodeURIComponent(vendedorId)}`)
+            let cacheKeyCaja = "macuare_caja_" + vendedorId;
+            let cacheKeyTickets = "macuare_tickets_" + vendedorId;
+
+            cargarResultadosGlobalesAdmin();
+
+            let urlCajas = `${URL_WEB_APP}?action=getCajas`;
+            fetch(urlCajas)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        if (data.caja) {
-                            renderizarCajaUI(data.caja);
-                        }
-                        let ticketsServidor = data.tickets || data.misTickets || [];
-                        let cacheKeyTickets = "macuare_tickets_" + vendedorId;
-                        let ticketsLocales = JSON.parse(localStorage.getItem(cacheKeyTickets) || "[]");
-
-                        // Fusionar tickets locales y del servidor sin duplicados
-                        let mapaUnificado = {};
-                        ticketsServidor.forEach(t => {
-                            let id = t.ID_Ticket || t.TicketID || t.ID;
-                            if (id) mapaUnificado[id] = t;
-                        });
-                        ticketsLocales.forEach(t => {
-                            let id = t.ID_Ticket || t.TicketID || t.ID;
-                            if (id && !mapaUnificado[id]) {
-                                mapaUnificado[id] = t;
-                            }
-                        });
-
-                        let listaFinalTickets = Object.values(mapaUnificado);
-                        localStorage.setItem(cacheKeyTickets, JSON.stringify(listaFinalTickets));
-                        renderizarTablaTicketsUI(listaFinalTickets, vendedorId);
+                    let miCaja = null;
+                    if (data.success && data.data) {
+                        miCaja = data.data.find(c => String(c.taquilla || c.Taquilla || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
+                    }
+                    
+                    if (miCaja) {
+                        localStorage.setItem(cacheKeyCaja, JSON.stringify(miCaja));
+                        renderizarCajaUI(miCaja);
+                    } else {
+                        localStorage.removeItem(cacheKeyCaja);
+                        renderizarCajaUI({ ventas: 0, premios: 0, laQueda: 0, comision: 0 });
                     }
                 })
                 .catch(err => {
-                    console.error("Error al consultar caja:", err);
-                    // Fallback a caché local si falla la red
-                    let cacheKeyTickets = "macuare_tickets_" + vendedorId;
-                    let ticketsLocales = JSON.parse(localStorage.getItem(cacheKeyTickets) || "[]");
-                    renderizarTablaTicketsUI(ticketsLocales, vendedorId);
+                    console.warn("Aviso: No se pudo conectar a la nube para la caja.", err);
+                    let cajaLocal = localStorage.getItem(cacheKeyCaja);
+                    if (cajaLocal) {
+                        try { renderizarCajaUI(JSON.parse(cajaLocal)); } catch(e) {}
+                    }
+                });
+
+            let urlTickets = `${URL_WEB_APP}?action=getTickets`;
+            fetch(urlTickets)
+                .then(res => res.json())
+                .then(data => {
+                    let misTickets = [];
+                    if (data.success && data.data) {
+                        misTickets = data.data.filter(t => String(t.Vendedor || t.vendedor || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
+                        misTickets.reverse();
+                    }
+                    
+                    localStorage.setItem(cacheKeyTickets, JSON.stringify(misTickets));
+                    renderizarTablaTicketsUI(misTickets, vendedorId);
+                })
+                .catch(err => {
+                    console.warn("Aviso: No se pudieron actualizar tickets desde la nube.", err);
+                    let ticketsLocales = localStorage.getItem(cacheKeyTickets);
+                    if (ticketsLocales) {
+                        try { renderizarTablaTicketsUI(JSON.parse(ticketsLocales), vendedorId); } catch(e) {}
+                    }
                 });
         }
 
         function actualizarCaja() {
-            let usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
-            if (usuarioActivo) {
-                consultarCajaVendedor(usuarioActivo);
-                cargarResultadosGlobalesAdmin();
-                alert("🔄 Caja y resultados actualizados correctamente.");
-            }
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
+            consultarCajaVendedor(vendedorId);
+            cargarFechasHipodromos();
+            alert("Caja y listados actualizados con éxito.");
         }
 
         function copiarDatosCompletos() {
-            let textoACopiar = `Banco: Banesco (0134)\nTelf: 04149443028\nCedula: V-19466062`;
-            navigator.clipboard.writeText(textoACopiar).then(() => {
-                alert("📋 ¡Datos bancarios copiados al portapapeles!");
-            }).catch(err => {
-                alert("No se pudo copiar automáticamente. Por favor cópialos manualmente.");
-            });
+            let banco = document.getElementById("bancoTxt").innerText;
+            let telf = document.getElementById("telfTxt").innerText;
+            let cedula = document.getElementById("cedulaTxt").innerText;
+            let textoCompleto = `${banco}\n${telf}\n${cedula}`;
+
+            navigator.clipboard.writeText(textoCompleto).then(() => {
+                alert("¡Datos bancarios copiados al portapapeles!");
+            }).catch(err => console.error('Error al copiar: ', err));
         }
 
         function enviarPagoRealizado() {
-            let refBanca = document.getElementById("refPagoBanca").value.trim();
-            if (!refBanca) {
-                alert("Por favor ingrese el número de referencia de su pago a la banca.");
+            let referencia = document.getElementById("refPagoBanca").value.trim();
+            if (!referencia) {
+                alert("Por favor ingrese el número de referencia del pago realizado.");
                 return;
             }
-            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla";
-            let montoStr = document.getElementById("montoTransferirModal").innerText;
 
-            let url = `${URL_WEB_APP}?action=registrarCuadreBanca&vendedorId=${encodeURIComponent(vendedorId)}&referencia=${encodeURIComponent(refBanca)}&monto=${encodeURIComponent(montoStr)}`;
-            
+            let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
+            let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
+            let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
+            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
+            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
+            let neto = laQueda - comision;
+
+            let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
+
             fetch(url)
                 .then(res => res.json())
                 .then(data => {
-                    alert("✅ ¡Cuadre reportado con éxito al administrador!");
-                    document.getElementById("refPagoBanca").value = "";
-                    cerrarModalCuadre();
+                    if (data.success) {
+                        alert("¡Pago reportado con éxito a la administración!");
+                        document.getElementById("refPagoBanca").value = "";
+                        cerrarModalCuadre();
+                    } else {
+                        alert("Error al reportar pago: " + (data.mensaje || "Desconocido"));
+                    }
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("✅ Cuadre registrado localmente. (Verifique conexión con servidor)");
-                    cerrarModalCuadre();
+                    alert("Error de conexión al enviar el reporte.");
                 });
         }
     </script>
