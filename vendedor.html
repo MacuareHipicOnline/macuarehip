@@ -1127,12 +1127,25 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugado = caballosElegidos[validaIdx - 1];
-                    if (caballoJugado) {
+                    let caballoJugadoOriginal = parseInt(caballosElegidos[validaIdx - 1]);
+                    if (!isNaN(caballoJugadoOriginal)) {
+                        
+                        // REGLA HÍPICA DE RETIRADOS: Si el caballo fue retirado, corre con el siguiente número disponible
+                        let caballoEfectivo = caballoJugadoOriginal;
+                        let retiradosValida = (caballosRetiradosMapa[validaIdx] || []).map(num => parseInt(num));
+                        let maxCaballos = maxCaballosPorValida[validaIdx] || 14;
+                        
+                        while (retiradosValida.includes(caballoEfectivo) && caballoEfectivo <= maxCaballos) {
+                            caballoEfectivo++; // Pasa al siguiente número (ej: del 8 retirado pasa a correr con el 9)
+                        }
+
+                        let caballoEfectivoStr = String(caballoEfectivo);
                         let puestosPermitidos = resultadoInfo.puestos;
                         let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-                        if (!ganadoresValidos.includes(caballoJugado)) {
-                            return false;
+
+                        // Comprobamos si el caballo efectivo (o el corrido) entró en el marcador oficial de puestos
+                        if (!ganadoresValidos.includes(caballoEfectivoStr)) {
+                            return false; // Si no entró, se marca con caída estándar
                         }
                     }
                 }
