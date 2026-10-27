@@ -99,6 +99,33 @@
             color: #1f2e20;
         }
 
+        /* BLOQUE INFORMATIVO DE PAGO MÓVIL */
+        .pago-movil-box {
+            background: #f2f9f4;
+            border: 1px dashed #27ae60;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            text-align: left;
+            font-size: 13px;
+            color: #1e5620;
+            display: none;
+        }
+        .pago-movil-box h4 {
+            font-size: 13px;
+            color: #1e5620;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #a3e4d7;
+            padding-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .pago-movil-box p {
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
         /* MODALES ANIMADOS Y LIMPIOS */
         .modal-overlay { 
             display: none; 
@@ -178,6 +205,15 @@
             <div class="combinaciones-box" id="lblJugada">Cargando combinaciones...</div>
             <p style="margin-top: 12px;"><strong>Monto Apuesta:</strong> Bs <span id="lblMonto">0.00</span></p>
             <p><strong>Premio Real / Estimado:</strong> <span id="lblPremio" style="color: #73502b; font-weight: bold;">Bs 0.00</span></p>
+
+            <!-- BLOQUE DINÁMICO DE PAGO MÓVIL (SÓLO CUANDO ESTÁ PAGADO) -->
+            <div id="bloquePagoMovilInfo" class="pago-movil-box">
+                <h4>✅ Detalles del Pago Realizado</h4>
+                <p><strong>Banco:</strong> <span id="lblBancoPago">---</span></p>
+                <p><strong>Teléfono:</strong> <span id="lblTelefonoPago">---</span></p>
+                <p><strong>Cédula:</strong> <span id="lblCedulaPago">---</span></p>
+                <p><strong>Nro. Referencia:</strong> <span id="lblReferenciaPago" style="font-weight: bold; color: #114213;">---</span></p>
+            </div>
         </div>
 
         <button type="button" style="width: 100%; background: #eae5d9; color: #73502b; border: 1px solid #bfae91; padding: 11px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 5px;" onclick="abrirModalReglas()">📖 Ver Reglas del Juego</button>
@@ -393,19 +429,41 @@
             document.getElementById('lblJugada').innerHTML = htmlSeleccion;
 
             let badgeEl = document.getElementById('lblEstadoBadge');
+            let bloquePagoBox = document.getElementById('bloquePagoMovilInfo');
             let premioCalculado = 0;
             let premioBackend = t.PremioReal !== undefined ? t.PremioReal : (t.premioReal !== undefined ? t.premioReal : (t.Premio !== undefined ? t.Premio : (t.premio !== undefined ? t.premio : null)));
 
-            if (todasPerdidas && partesSeleccion.length > 0) {
+            // Control de visualización del bloque de pago móvil
+            if (estatusLower.includes('pagad')) {
+                badgeEl.innerText = "✅ Ticket Pagado";
+                badgeEl.className = "status ganador";
+                
+                // Extraer datos del pago móvil
+                let bancoPago = t.Banco_PagoMovil || t.banco_pagomovil || t.Banco || "---";
+                let telPago = t.Telefono_PagoMovil || t.telefono_pagomovil || t.Telefono || "---";
+                let cedPago = t.Cedula_PagoMovil || t.cedula_pagomovil || t.Cedula || "---";
+                let refPago = t.Referencia_PagoMovil || t.referencia_pagomovil || t.Referencia || "---";
+
+                document.getElementById('lblBancoPago').innerText = bancoPago;
+                document.getElementById('lblTelefonoPago').innerText = telPago;
+                document.getElementById('lblCedulaPago').innerText = cedPago;
+                document.getElementById('lblReferenciaPago').innerText = refPago;
+
+                bloquePagoBox.style.display = 'block';
+            } else {
+                bloquePagoBox.style.display = 'none';
+            }
+
+            if (todasPerdidas && partesSeleccion.length > 0 && !estatusLower.includes('pagad')) {
                 badgeEl.innerText = "❌ Ticket Perdedor (Sin Combos Vivos)";
                 badgeEl.className = "status perdido";
                 premioCalculado = 0;
-            } else if (estatusLower.includes('perdedor') || estatusLower.includes('perdid')) {
+            } else if ((estatusLower.includes('perdedor') || estatusLower.includes('perdid')) && !estatusLower.includes('pagad')) {
                 badgeEl.innerText = "❌ Ticket Perdedor";
                 badgeEl.className = "status perdido";
                 premioCalculado = 0;
-            } else if (estatusLower.includes('pagad') || estatusLower.includes('ganad')) {
-                badgeEl.innerText = estatusLower.includes('pagad') ? "✅ Ticket Pagado" : "🏆 ¡TICKET GANADOR!";
+            } else if (estatusLower.includes('ganad') && !estatusLower.includes('pagad')) {
+                badgeEl.innerText = "🏆 ¡TICKET GANADOR!";
                 badgeEl.className = "status ganador";
 
                 if (premioBackend !== null && !isNaN(Number(premioBackend))) {
@@ -413,7 +471,7 @@
                 } else {
                     premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
                 }
-            } else {
+            } else if (!estatusLower.includes('pagad')) {
                 badgeEl.className = "status";
                 if (todasPerdidas) {
                     badgeEl.innerText = "❌ Perdido (Sin Combos Vivos)";
@@ -423,10 +481,17 @@
                     badgeEl.innerText = "⏳ Vivo / Pendiente";
                     premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
                 }
+            } else {
+                // Si ya está pagado, calculamos el premio correspondiente
+                if (premioBackend !== null && !isNaN(Number(premioBackend))) {
+                    premioCalculado = Number(premioBackend);
+                } else {
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                }
             }
 
             let premioFinalMostrar = premioCalculado > 0 ? premioCalculado : (sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10);
-            if (todasPerdidas) premioFinalMostrar = 0;
+            if (todasPerdidas && !estatusLower.includes('pagad') && !estatusLower.includes('ganad')) premioFinalMostrar = 0;
 
             document.getElementById('lblPremio').innerText = "Bs " + Number(premioFinalMostrar).toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
