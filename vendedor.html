@@ -582,7 +582,6 @@
             cargarResultadosGlobalesAdmin();
             construirSelectoresValidas();
 
-            // Actualización automática cada 10 segundos si el usuario ya inició sesión
             setInterval(() => {
                 const userActivo = localStorage.getItem("usuarioMacuareVendedor");
                 if (userActivo) {
@@ -753,7 +752,6 @@
             <h2 style="margin-top: 25px;">2. Seleccionar Combinaciones al Mismo Ticket</h2>
             <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Agregue tantas jugadas como desee para este cliente.</p>
 
-            <!-- Contenedor dinámico de botones de Válidas -->
             <div id="contenedorSelectoresValidas"></div>
             
             <div class="form-grid" style="margin-top: 15px;">
@@ -917,7 +915,6 @@
         </div>
     </div>
 
-    <!-- POPUP / MODAL DE REGLAS AMIGABLE Y ANIMADO -->
     <div class="modal-overlay" id="modalReglas">
         <div class="modal-content" style="max-width: 480px;">
             <h3>🐎 Guía y Reglas del Macuare Hípico</h3>
@@ -925,7 +922,7 @@
             <div style="font-size: 13.5px; color: #2c3a2e; line-height: 1.6; text-align: left;">
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
                     <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">1️⃣ Resultados Oficiales</p>
-                    <p style="color: #4a584b; font-size: 13px;">Todas las jugadas se rigen estrictamente por los resultados oficiales emitidos por el <b>INH o HINAVA</b>.</p>
+                    <p style="color: #4a584b; font-size: 13px;">Todas las jugadas se rigen strictly por los resultados oficiales emitidos por el <b>INH o HINAVA</b>.</p>
                 </div>
 
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
@@ -1545,15 +1542,29 @@
             tbodyTickets.innerHTML = htmlTickets;
         }
 
+        /* LÓGICA DE CAJA CORREGIDA Y REORGANIZADA PARA COINCIDIR CON LA BANCA EN PÉRDIDAS */
         function renderizarCajaUI(miCaja) {
             if (!miCaja) return;
             datosCajaActual = miCaja;
             
             let ventas = Number(miCaja.ventas !== undefined ? miCaja.ventas : (miCaja.Ventas !== undefined ? miCaja.Ventas : 0));
             let premios = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
-            let laQueda = Number(miCaja.laQueda !== undefined ? miCaja.laQueda : (miCaja.LaQueda !== undefined ? miCaja.LaQueda : 0));
-            let comision = Number(miCaja.comision !== undefined ? miCaja.comision : (miCaja.Comision !== undefined ? miCaja.Comision : 0));
-            let enviarBanca = laQueda - comision;
+            let laQueda = ventas - premios;
+            
+            let comision = 0;
+            let enviarBanca = 0;
+
+            if (laQueda > 0) {
+                // Si la jornada dio ganancia: 30% para vendedor, 70% restante para la Banca
+                comision = laQueda * 0.30;
+                enviarBanca = laQueda - comision;
+            } else {
+                // Si la jornada dio pérdida (Premios >= Ventas):
+                // 1. Vendedor NO cobra % de comisión sobre saldo negativo.
+                // 2. El vendedor transfiere el 100% de las ventas cobradas (monto bruto).
+                comision = 0;
+                enviarBanca = ventas;
+            }
 
             let txtVentasEl = document.getElementById("txtVentas");
             let txtPremiosEl = document.getElementById("txtPremios");
@@ -1573,15 +1584,11 @@
                 txtLaQuedaEl.className = "text-yellow";
             }
 
-            if (enviarBanca < 0) {
-                txtEnviarBancaEl.className = "text-red";
-            } else {
-                txtEnviarBancaEl.className = "";
-                txtEnviarBancaEl.style.color = "#1e5620";
-            }
+            // 'A Enviar a la Banca' siempre debe resaltar en verde indicando el dinero real positivo a transferir
+            txtEnviarBancaEl.className = "text-green";
 
-            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
-            document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            // En el modal de pago bancario se especifica exactamente el monto positivo a depositar
+            document.getElementById("montoTransferirModal").innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
 
         function consultarCajaVendedor(vendedorId) {
@@ -1665,9 +1672,10 @@
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
             let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
             let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
-            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
-            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
-            let neto = laQueda - comision;
+            let laQueda = ventas - premios;
+            
+            let comision = (laQueda > 0) ? (laQueda * 0.30) : 0;
+            let neto = (laQueda > 0) ? (laQueda - comision) : ventas;
 
             let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
 
