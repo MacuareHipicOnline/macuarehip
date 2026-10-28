@@ -300,6 +300,19 @@
             box-shadow: 0 2px 5px rgba(35, 82, 36, 0.3);
             transform: scale(1.05);
         }
+        /* Estilos para botones retirados y ocultos/deshabilitados por cupo de inscritos */
+        .num-btn.retirado {
+            background-color: #fadbd8 !important;
+            color: #c0392b !important;
+            border: 2px dashed #e74c3c !important;
+            text-decoration: line-through;
+            opacity: 0.65;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .num-btn.deshabilitado-inscritos {
+            display: none !important;
+        }
 
         .summary-row {
             display: flex;
@@ -569,6 +582,7 @@
 
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
         let mapaResultadosGlobal = {};
+        let mapaCarrerasInscritos = {};
 
         window.addEventListener('DOMContentLoaded', () => {
             const usuarioActivo = localStorage.getItem("usuarioMacuareVendedor");
@@ -580,8 +594,9 @@
             }
             cargarFechasHipodromos();
             cargarResultadosGlobalesAdmin();
-            construirSelectoresValidas();
+            sincronizarCarrerasYConstruirSelectores();
 
+            // Actualización automática cada 10 segundos
             setInterval(() => {
                 const userActivo = localStorage.getItem("usuarioMacuareVendedor");
                 if (userActivo) {
@@ -589,6 +604,7 @@
                 }
                 cargarFechasHipodromos();
                 cargarResultadosGlobalesAdmin();
+                sincronizarCarrerasYConstruirSelectores();
             }, 10000);
         });
 
@@ -622,10 +638,11 @@
 
         let fechasHipodromosMap = {};
         function cargarFechasHipodromos() {
-            fetch(`${URL_WEB_APP}?action=getCareers`)
+            fetch(`${URL_WEB_APP}?action=getCarreras`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.data) {
+                        fechasHipodromosMap = {};
                         fechasHipodromosMap = {};
                         data.data.forEach(c => {
                             let hipo = (c.Hipodromo || c.hipodromo || "").trim();
@@ -637,6 +654,37 @@
                     }
                 })
                 .catch(err => console.error("Error al cargar fechas de carreras:", err));
+        }
+
+        function sincronizarCarrerasYConstruirSelectores() {
+            fetch(`${URL_WEB_APP}?action=getCarreras`)
+                .then(res => res.json())
+                .then(data => {
+                    mapaCarrerasInscritos = {};
+                    if (data.success && data.data) {
+                        data.data.forEach(c => {
+                            let validaName = String(c.carrera || c.Valida || "").trim();
+                            let match = validaName.match(/(\d+)/);
+                            if (match) {
+                                let idx = parseInt(match[1]);
+                                if (idx >= 1 && idx <= 6) {
+                                    if (!mapaCarrerasInscritos[idx]) {
+                                        mapaCarrerasInscritos[idx] = [];
+                                    }
+                                    mapaCarrerasInscritos[idx].push({
+                                        numero: String(c.numero || "").trim(),
+                                        estado: String(c.estado || "").trim().toLowerCase()
+                                    });
+                                }
+                            }
+                        });
+                    }
+                    construirSelectoresValidas();
+                })
+                .catch(err => {
+                    console.error("Error al sincronizar carreras:", err);
+                    construirSelectoresValidas();
+                });
         }
 
         function intentarLogin(e) {
@@ -752,6 +800,7 @@
             <h2 style="margin-top: 25px;">2. Seleccionar Combinaciones al Mismo Ticket</h2>
             <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Agregue tantas jugadas como desee para este cliente.</p>
 
+            <!-- Contenedor dinámico de botones de Válidas -->
             <div id="contenedorSelectoresValidas"></div>
             
             <div class="form-grid" style="margin-top: 15px;">
@@ -915,6 +964,7 @@
         </div>
     </div>
 
+    <!-- POPUP / MODAL DE REGLAS AMIGABLE Y ANIMADO -->
     <div class="modal-overlay" id="modalReglas">
         <div class="modal-content" style="max-width: 480px;">
             <h3>🐎 Guía y Reglas del Macuare Hípico</h3>
@@ -922,7 +972,7 @@
             <div style="font-size: 13.5px; color: #2c3a2e; line-height: 1.6; text-align: left;">
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
                     <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">1️⃣ Resultados Oficiales</p>
-                    <p style="color: #4a584b; font-size: 13px;">Todas las jugadas se rigen strictly por los resultados oficiales emitidos por el <b>INH o HINAVA</b>.</p>
+                    <p style="color: #4a584b; font-size: 13px;">Todas las jugadas se rigen estrictamente por los resultados oficiales emitidos por el <b>INH o HINAVA</b>.</p>
                 </div>
 
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
@@ -966,6 +1016,14 @@
             let ordinales = ["1ª Válida", "2ª Válida", "3ª Válida", "4ª Válida", "5ª Válida", "6ª Válida"];
             
             for (let i = 1; i <= 6; i++) {
+                let inscritosValida = mapaCarrerasInscritos[i] || [];
+                // Determinar el número máximo de caballos inscritos para esta válida
+                let maxCaballos = 14;
+                if (inscritosValida.length > 0) {
+                    let nums = inscritosValida.map(c => parseInt(c.numero) || 0);
+                    maxCaballos = Math.max(14, ...nums);
+                }
+
                 html += `<div class="valida-box">
                     <div class="valida-title">
                         <span>${ordinales[i-1]}</span>
@@ -973,13 +1031,43 @@
                     </div>
                     <div class="valida-buttons" id="botonesV${i}">`;
                 
-                for (let num = 1; num <= 14; num++) {
-                    html += `<button type="button" class="num-btn" onclick="seleccionarCaballo(${i}, ${num})">${num}</button>`;
+                for (let num = 1; num <= maxCaballos; num++) {
+                    let infoCaballo = inscritosValida.find(c => parseInt(c.numero) === num);
+                    let esRetirado = infoCaballo && infoCaballo.estado.includes("retirado");
+                    let noInscrito = inscritosValida.length > 0 && !infoCaballo && num > 14;
+
+                    let clasesBoton = "num-btn";
+                    let atributosExtra = "";
+
+                    if (esRetirado) {
+                        clasesBoton += " retirado";
+                        atributosExtra = `title="Ejemplar Retirado"`;
+                    } else if (inscritosValida.length > 0 && !infoCaballo && num > inscritosValida.length) {
+                        // Si hay menos de 14 caballos inscritos, ocultamos los botones sobrantes
+                        clasesBoton += " deshabilitado-inscritos";
+                    }
+
+                    html += `<button type="button" class="${clasesBoton}" ${atributosExtra} onclick="seleccionarCaballo(${i}, ${num})">${num}</button>`;
                 }
                 
                 html += `</div></div>`;
             }
             contenedor.innerHTML = html;
+
+            // Restaurar selecciones actuales si el usuario ya había seleccionado algo
+            for (let i = 1; i <= 6; i++) {
+                if (seleccionValidasActual[i]) {
+                    let contenedorBtns = document.getElementById(`botonesV${i}`);
+                    if (contenedorBtns) {
+                        let botones = contenedorBtns.getElementsByClassName("num-btn");
+                        for (let btn of botones) {
+                            if (parseInt(btn.innerText) === parseInt(seleccionValidasActual[i])) {
+                                btn.classList.add("selected");
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         function seleccionarCaballo(validaIdx, numero) {
@@ -1542,29 +1630,15 @@
             tbodyTickets.innerHTML = htmlTickets;
         }
 
-        /* LÓGICA DE CAJA CORREGIDA Y REORGANIZADA PARA COINCIDIR CON LA BANCA EN PÉRDIDAS */
         function renderizarCajaUI(miCaja) {
             if (!miCaja) return;
             datosCajaActual = miCaja;
             
             let ventas = Number(miCaja.ventas !== undefined ? miCaja.ventas : (miCaja.Ventas !== undefined ? miCaja.Ventas : 0));
             let premios = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
-            let laQueda = ventas - premios;
-            
-            let comision = 0;
-            let enviarBanca = 0;
-
-            if (laQueda > 0) {
-                // Si la jornada dio ganancia: 30% para vendedor, 70% restante para la Banca
-                comision = laQueda * 0.30;
-                enviarBanca = laQueda - comision;
-            } else {
-                // Si la jornada dio pérdida (Premios >= Ventas):
-                // 1. Vendedor NO cobra % de comisión sobre saldo negativo.
-                // 2. El vendedor transfiere el 100% de las ventas cobradas (monto bruto).
-                comision = 0;
-                enviarBanca = ventas;
-            }
+            let laQueda = Number(miCaja.laQueda !== undefined ? miCaja.laQueda : (miCaja.LaQueda !== undefined ? miCaja.LaQueda : 0));
+            let comision = Number(miCaja.comision !== undefined ? miCaja.comision : (miCaja.Comision !== undefined ? miCaja.Comision : 0));
+            let enviarBanca = laQueda - comision;
 
             let txtVentasEl = document.getElementById("txtVentas");
             let txtPremiosEl = document.getElementById("txtPremios");
@@ -1584,11 +1658,15 @@
                 txtLaQuedaEl.className = "text-yellow";
             }
 
-            // 'A Enviar a la Banca' siempre debe resaltar en verde indicando el dinero real positivo a transferir
-            txtEnviarBancaEl.className = "text-green";
+            if (enviarBanca < 0) {
+                txtEnviarBancaEl.className = "text-red";
+            } else {
+                txtEnviarBancaEl.className = "";
+                txtEnviarBancaEl.style.color = "#1e5620";
+            }
 
-            // En el modal de pago bancario se especifica exactamente el monto positivo a depositar
-            document.getElementById("montoTransferirModal").innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
+            document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
 
         function consultarCajaVendedor(vendedorId) {
@@ -1648,6 +1726,7 @@
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
             consultarCajaVendedor(vendedorId);
             cargarFechasHipodromos();
+            sincronizarCarrerasYConstruirSelectores();
             alert("Caja y listados actualizados con éxito.");
         }
 
@@ -1672,10 +1751,9 @@
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
             let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
             let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
-            let laQueda = ventas - premios;
-            
-            let comision = (laQueda > 0) ? (laQueda * 0.30) : 0;
-            let neto = (laQueda > 0) ? (laQueda - comision) : ventas;
+            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
+            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
+            let neto = laQueda - comision;
 
             let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
 
@@ -1683,7 +1761,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert("¡Pago reportado con éxito a la administración!");
+                        alert("¡Pago reportado con éxito la administración!");
                         document.getElementById("refPagoBanca").value = "";
                         cerrarModalCuadre();
                     } else {
