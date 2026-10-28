@@ -300,7 +300,7 @@
             box-shadow: 0 2px 5px rgba(35, 82, 36, 0.3);
             transform: scale(1.05);
         }
-        /* Estilos para botones retirados y ocultos/deshabilitados por cupo de inscritos */
+        /* Clases agregadas para tachar retirados y ocultar botones sobrantes */
         .num-btn.retirado {
             background-color: #fadbd8 !important;
             color: #c0392b !important;
@@ -596,7 +596,7 @@
             cargarResultadosGlobalesAdmin();
             sincronizarCarrerasYConstruirSelectores();
 
-            // Actualización automática cada 10 segundos
+            // Actualización automática cada 10 segundos si el usuario ya inició sesión
             setInterval(() => {
                 const userActivo = localStorage.getItem("usuarioMacuareVendedor");
                 if (userActivo) {
@@ -642,7 +642,6 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.data) {
-                        fechasHipodromosMap = {};
                         fechasHipodromosMap = {};
                         data.data.forEach(c => {
                             let hipo = (c.Hipodromo || c.hipodromo || "").trim();
@@ -1017,7 +1016,6 @@
             
             for (let i = 1; i <= 6; i++) {
                 let inscritosValida = mapaCarrerasInscritos[i] || [];
-                // Determinar el número máximo de caballos inscritos para esta válida
                 let maxCaballos = 14;
                 if (inscritosValida.length > 0) {
                     let nums = inscritosValida.map(c => parseInt(c.numero) || 0);
@@ -1034,7 +1032,6 @@
                 for (let num = 1; num <= maxCaballos; num++) {
                     let infoCaballo = inscritosValida.find(c => parseInt(c.numero) === num);
                     let esRetirado = infoCaballo && infoCaballo.estado.includes("retirado");
-                    let noInscrito = inscritosValida.length > 0 && !infoCaballo && num > 14;
 
                     let clasesBoton = "num-btn";
                     let atributosExtra = "";
@@ -1043,7 +1040,6 @@
                         clasesBoton += " retirado";
                         atributosExtra = `title="Ejemplar Retirado"`;
                     } else if (inscritosValida.length > 0 && !infoCaballo && num > inscritosValida.length) {
-                        // Si hay menos de 14 caballos inscritos, ocultamos los botones sobrantes
                         clasesBoton += " deshabilitado-inscritos";
                     }
 
@@ -1054,7 +1050,6 @@
             }
             contenedor.innerHTML = html;
 
-            // Restaurar selecciones actuales si el usuario ya había seleccionado algo
             for (let i = 1; i <= 6; i++) {
                 if (seleccionValidasActual[i]) {
                     let contenedorBtns = document.getElementById(`botonesV${i}`);
@@ -1761,7 +1756,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert("¡Pago reportado con éxito la administración!");
+                        alert("¡Pago reportado con éxito a la administración!");
                         document.getElementById("refPagoBanca").value = "";
                         cerrarModalCuadre();
                     } else {
