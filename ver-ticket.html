@@ -274,6 +274,7 @@
 
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw9vbCe6_k506EtbF1feQcO8qYaY9dK1pqScGNm79uQym24U_i_KpxOO6EPVWThocjxvg/exec";
         let mapaResultadosGlobal = {};
+        let mapaCarrerasInscritosTicket = {};
 
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -288,11 +289,11 @@
             }
 
             document.getElementById('lblTicket').innerText = tokenTicket;
-            cargarResultadosGlobalesYBuscarTicket(tokenTicket);
+            sincronizarCarrerasYResultados(tokenTicket);
 
             // Actualización automática cada 10 segundos del estatus y resultados en vivo
             setInterval(() => {
-                cargarResultadosGlobalesYBuscarTicket(tokenTicket);
+                sincronizarCarrerasYResultados(tokenTicket);
             }, 10000);
         });
 
@@ -307,6 +308,26 @@
             setTimeout(() => m.style.display = 'none', 300);
         }
 
+        // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+        function obtenerNumeroRealConArrastreTicket(validaIdx, numeroJugado) {
+            let inscritos = mapaCarrerasInscritosTicket[validaIdx] || [];
+            let numActual = parseInt(numeroJugado);
+            if (isNaN(numActual)) return numeroJugado;
+
+            let maxIter = 30; // Seguridad para evitar bucles infinitos
+            while (maxIter > 0) {
+                let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
+                let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+                if (esRetirado) {
+                    numActual++;
+                } else {
+                    break;
+                }
+                maxIter--;
+            }
+            return String(numActual);
+        }
+
         function evaluarCombinacionViva(subComboStr) {
             let partesLimpias = subComboStr.split('(')[0];
             let caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -314,17 +335,51 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugado = caballosElegidos[validaIdx - 1];
-                    if (caballoJugado) {
+                    let caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+                    if (caballoJugadoOriginal) {
+                        // Aplicar la regla de arrastre al siguiente número hábil si el original fue retirado
+                        let caballoEfectivo = obtenerNumeroRealConArrastreTicket(validaIdx, caballoJugadoOriginal);
+
                         let puestosPermitidos = resultadoInfo.puestos;
                         let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-                        if (!ganadoresValidos.includes(caballoJugado)) {
+                        if (!ganadoresValidos.includes(caballoEfectivo)) {
                             return false;
                         }
                     }
                 }
             }
             return true;
+        }
+
+        function sincronizarCarrerasYResultados(ticketId) {
+            fetch(`${URL_WEB_APP}?action=getCarreras`)
+                .then(res => res.json())
+                .then(data => {
+                    mapaCarrerasInscritosTicket = {};
+                    if (data.success && data.data) {
+                        data.data.forEach(c => {
+                            let validaName = String(c.carrera || c.Valida || "").trim();
+                            let match = validaName.match(/(\d+)/);
+                            if (match) {
+                                let idx = parseInt(match[1]);
+                                if (idx >= 1 && idx <= 6) {
+                                    if (!mapaCarrerasInscritosTicket[idx]) {
+                                        mapaCarrerasInscritosTicket[idx] = [];
+                                    }
+                                    mapaCarrerasInscritosTicket[idx].push({
+                                        numero: String(c.numero || "").trim(),
+                                        estado: String(c.estado || "").trim().toLowerCase()
+                                    });
+                                }
+                            }
+                        });
+                    }
+                    cargarResultadosGlobalesYBuscarTicket(ticketId);
+                })
+                .catch(err => {
+                    console.error("Error al sincronizar carreras:", err);
+                    cargarResultadosGlobalesYBuscarTicket(ticketId);
+                });
         }
 
         function cargarResultadosGlobalesYBuscarTicket(ticketId) {
@@ -438,7 +493,6 @@
                 badgeEl.innerText = "✅ Ticket Pagado";
                 badgeEl.className = "status ganador";
                 
-                // Extraer datos del pago móvil
                 let bancoPago = t.Banco_PagoMovil || t.banco_pagomovil || t.Banco || "---";
                 let telPago = t.Telefono_PagoMovil || t.telefono_pagomovil || t.Telefono || "---";
                 let cedPago = t.Cedula_PagoMovil || t.cedula_pagomovil || t.Cedula || "---";
@@ -482,7 +536,6 @@
                     premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
                 }
             } else {
-                // Si ya está pagado, calculamos el premio correspondiente
                 if (premioBackend !== null && !isNaN(Number(premioBackend))) {
                     premioCalculado = Number(premioBackend);
                 } else {
