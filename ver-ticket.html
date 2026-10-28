@@ -307,7 +307,6 @@
             setTimeout(() => m.style.display = 'none', 300);
         }
 
-        // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
         function obtenerNumeroRealConArrastreTicket(validaIdx, numeroJugado) {
             let inscritos = mapaCarrerasInscritosTicket[validaIdx] || [];
             let numActual = parseInt(numeroJugado);
@@ -394,11 +393,8 @@
                                     let c1 = String(row.CaballoGanador || "").trim();
                                     let c2 = String(row['2do lugar'] || "").trim();
                                     let c3 = String(row['3er lugar'] || "").trim();
-                                    
-                                    // Lectura robusta de puestos válidos (soporta 'Puestos Válidos', 'puestosValidos', 'puestos', etc.)
                                     let puestosValidosVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
                                     let puestosValidos = parseInt(puestosValidosVal) || 3;
-
                                     mapaResultadosGlobal[idx] = {
                                         ganadores: [c1, c2, c3].filter(c => c !== ""),
                                         puestos: puestosValidos
@@ -454,8 +450,8 @@
             let jugador = t.Jugador || t.jugador || 'Anónimo';
             let seleccion = t.Seleccion6 || t.Combinacion || t.combinacion || '---';
             let monto = Number(t.Monto || t.monto || 0);
-            let estatus = String(t.Estatus || t.estatus || 'Pendiente').trim();
-            let estatusLower = estatus.toLowerCase();
+            let estatusServidor = String(t.Estatus || t.estatus || 'Pendiente').trim();
+            let estatusLower = estatusServidor.toLowerCase();
 
             document.getElementById('lblHipodromo').innerText = hipodromo;
             document.getElementById('lblVendedor').innerText = vendedor;
@@ -466,13 +462,11 @@
             let htmlSeleccion = "";
             let sumaGanadoras = 0;
             let todasPerdidas = true;
-            let algunaViva = false;
 
             partesSeleccion.forEach((p, idx) => {
                 let estaViva = evaluarCombinacionViva(p);
                 if (estaViva) {
                     todasPerdidas = false;
-                    algunaViva = true;
                     htmlSeleccion += `<div><b>#${idx+1}:</b> <span style="color: #1e5620;">✓ ${p}</span></div>`;
                     let matchM = p.match(/\(Bs\s*([\d\.,]+)\)/i) || p.match(/\(([\d\.,]+)\)/);
                     if (matchM) {
@@ -504,44 +498,40 @@
                 document.getElementById('lblTelefonoPago').innerText = telPago;
                 document.getElementById('lblCedulaPago').innerText = cedPago;
                 document.getElementById('lblReferenciaPago').innerText = refPago;
-
                 bloquePagoBox.style.display = 'block';
             } else {
                 bloquePagoBox.style.display = 'none';
             }
 
-            // Verificar si ya se corrieron las 6 válidas (todas tienen resultados cargados)
-            let totalValidasConResultado = Object.keys(mapaResultadosGlobal).length;
-            let jornadaFinalizada = (totalValidasConResultado >= 6);
-
-            if (estatusLower.includes('pagad')) {
-                if (premioBackend !== null && !isNaN(Number(premioBackend))) {
-                    premioCalculado = Number(premioBackend);
-                } else {
-                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
-                }
-            } else if (jornadaFinalizada && algunaViva) {
-                // Si la jornada terminó y el ticket tiene combinaciones vivas, ¡ES GANADOR!
-                badgeEl.innerText = "🏆 ¡TICKET GANADOR!";
-                badgeEl.className = "status ganador";
-                if (premioBackend !== null && !isNaN(Number(premioBackend))) {
-                    premioCalculado = Number(premioBackend);
-                } else {
-                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
-                }
-            } else if (!todasPerdidas) {
-                // Si aún está en desarrollo y tiene combinaciones vivas
-                badgeEl.innerText = "⏳ Vivo / Pendiente";
-                badgeEl.className = "status";
-                premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
-            } else {
+            // Sincronización estricta: Si el servidor (Google Sheets / Vendedor) ya lo marcó como Perdedor o Perdido, respetarlo y no mostrar falso positivo de ganador en el comprobante web.
+            if (estatusLower.includes('perdedor') || estatusLower.includes('perdido')) {
+                badgeEl.innerText = "❌ Ticket Perdedor";
+                badgeEl.className = "status perdido";
+                premioCalculado = 0;
+            } else if (todasPerdidas && partesSeleccion.length > 0 && !estatusLower.includes('pagad')) {
                 badgeEl.innerText = "❌ Ticket Perdedor (Sin Combos Vivos)";
                 badgeEl.className = "status perdido";
                 premioCalculado = 0;
+            } else if (estatusLower.includes('ganad') && !estatusLower.includes('pagad')) {
+                badgeEl.innerText = "🏆 ¡TICKET GANADOR!";
+                badgeEl.className = "status ganador";
+                premioCalculado = (premioBackend !== null && !isNaN(Number(premioBackend)) && Number(premioBackend) > 0) ? Number(premioBackend) : (sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10);
+            } else if (!estatusLower.includes('pagad')) {
+                if (todasPerdidas) {
+                    badgeEl.innerText = "❌ Perdido (Sin Combos Vivos)";
+                    badgeEl.className = "status perdido";
+                    premioCalculado = 0;
+                } else {
+                    badgeEl.innerText = "⏳ Vivo / Pendiente";
+                    badgeEl.className = "status";
+                    premioCalculado = sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10;
+                }
+            } else {
+                premioCalculado = (premioBackend !== null && !isNaN(Number(premioBackend)) && Number(premioBackend) > 0) ? Number(premioBackend) : (sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10);
             }
 
-            let premioFinalMostrar = premioCalculado > 0 ? premioCalculado : (sumaGanadoras > 0 ? sumaGanadoras * 10 : monto * 10);
-            if (todasPerdidas && !estatusLower.includes('pagad') && !estatusLower.includes('ganad') && !jornadaFinalizada) premioFinalMostrar = 0;
+            let premioFinalMostrar = premioCalculado > 0 ? premioCalculado : 0;
+            if (todasPerdidas && !estatusLower.includes('pagad') && !estatusLower.includes('ganad')) premioFinalMostrar = 0;
 
             document.getElementById('lblPremio').innerText = "Bs " + Number(premioFinalMostrar).toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
