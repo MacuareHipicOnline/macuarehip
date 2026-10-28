@@ -887,7 +887,6 @@
                 var c2 = String(row['2do lugar'] || "").trim();
                 var c3 = String(row['3er lugar'] || "").trim();
                 
-                // Lectura robusta de puestos válidos para evitar fallo en 4ta y 6ta válida
                 var puestosValidosVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
                 var puestosValidos = parseInt(puestosValidosVal) || 3;
 
@@ -976,14 +975,29 @@
         return;
       }
 
+      var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
+
+      if (esAdminMaster) {
+        storageSeguro.setItem('macuare_admin_user', usuario);
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('lblAdminUser').innerText = usuario;
+        
+        cargarResultadosGuardados();
+        cargarTopeRiesgo();
+        cargarBalancesCajas();
+        sincronizarCarrerasAdmin();
+        iniciarAutoActualizacion();
+        return;
+      }
+
       alertBox.className = "alert alert-success";
       alertBox.innerText = "Verificando credenciales...";
       alertBox.classList.remove('hidden');
 
       enviarPeticion({ action: 'login', usuario: usuario, password: password }, function(res) {
-        var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
-        if ((res && res.success && String(res.rol).toLowerCase() === 'admin') || esAdminMaster) {
-          var nombreUsuarioValido = (res && res.usuario) ? res.usuario : usuario;
+        if (res && res.success && String(res.rol).toLowerCase() === 'admin') {
+          var nombreUsuarioValido = res.usuario || usuario;
           storageSeguro.setItem('macuare_admin_user', nombreUsuarioValido);
           document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
@@ -1503,7 +1517,6 @@
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
           var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
           if (caballoJugadoOriginal) {
-            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
             var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
 
             var puestosPermitidos = resultadoInfo.puestos;
@@ -1609,9 +1622,9 @@
           res.data.forEach(u => {
             var badgeEst = u.estado === 'Suspendido' ? '<span class="badge-retirado">Susp.</span>' : '<span class="badge-activo">Activo</span>';
             var btnSuspenderActivar = u.estado === 'Suspendido' 
-              ? '<button style="background:#2e7d32; padding:4px 8px; font-size:0.75rem; width:auto; margin:0;" onclick="confirmarAccion(\'activar\', \'¿Activar usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + \', \'Activo\'); })">Activar</button>'
-              : '<button class="btn-danger" onclick="confirmarAccion(\'suspender\', \'¿Suspender usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + \', \'Suspendido\'); })">Susp.</button>';
-            var btnEditar = '<button class="btn-accent" style="padding:4px 8px; font-size:0.75rem; width:auto; margin:0 4px 0 0;" onclick="prepararEdicionUsuario(\'' + u.id + \', \'' + u.usuario + \', \'' + u.password + \', \'' + u.rol + \', \'' + u.estado + \')">Edit</button>';
+              ? '<button style="background:#2e7d32; padding:4px 8px; font-size:0.75rem; width:auto; margin:0;" onclick="confirmarAccion(\'activar\', \'¿Activar usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Activo\'); })">Activar</button>'
+              : '<button class="btn-danger" onclick="confirmarAccion(\'suspender\', \'¿Suspender usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Suspendido\'); })">Susp.</button>';
+            var btnEditar = '<button class="btn-accent" style="padding:4px 8px; font-size:0.75rem; width:auto; margin:0 4px 0 0;" onclick="prepararEdicionUsuario(\'' + u.id + '\', \'' + u.usuario + '\', \'' + u.password + '\', \'' + u.rol + '\', \'' + u.estado + '\')">Edit</button>';
 
             html += '<tr><td><b>' + u.id + '</b></td><td>' + u.usuario + '</td><td>' + u.password + '</td><td>' + u.rol + '</td><td>' + badgeEst + '</td><td>' + btnEditar + btnSuspenderActivar + '</td></tr>';
           });
