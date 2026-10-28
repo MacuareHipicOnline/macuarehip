@@ -1116,6 +1116,26 @@
             setTimeout(() => m.style.display = 'none', 300);
         }
 
+        // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+        function obtenerNumeroRealConArrastreVendedor(validaIdx, numeroJugado) {
+            let inscritos = mapaCarrerasInscritos[validaIdx] || [];
+            let numActual = parseInt(numeroJugado);
+            if (isNaN(numActual)) return numeroJugado;
+
+            let maxIter = 30; // Seguridad para evitar bucles infinitos
+            while (maxIter > 0) {
+                let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
+                let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+                if (esRetirado) {
+                    numActual++;
+                } else {
+                    break;
+                }
+                maxIter--;
+            }
+            return String(numActual);
+        }
+
         function evaluarCombinacionViva(subComboStr) {
             let partesLimpias = subComboStr.split('(')[0];
             let caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1123,11 +1143,14 @@
             for (let validaIdx = 1; validaIdx <= 6; validaIdx++) {
                 let resultadoInfo = mapaResultadosGlobal[validaIdx];
                 if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-                    let caballoJugado = caballosElegidos[validaIdx - 1];
-                    if (caballoJugado) {
+                    let caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+                    if (caballoJugadoOriginal) {
+                        // Aplicar la regla de arrastre al siguiente número hábil si el original fue retirado
+                        let caballoEfectivo = obtenerNumeroRealConArrastreVendedor(validaIdx, caballoJugadoOriginal);
+
                         let puestosPermitidos = resultadoInfo.puestos;
                         let ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-                        if (!ganadoresValidos.includes(caballoJugado)) {
+                        if (!ganadoresValidos.includes(caballoEfectivo)) {
                             return false;
                         }
                     }

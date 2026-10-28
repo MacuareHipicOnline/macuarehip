@@ -720,6 +720,7 @@
     let isTypingRefPago = false;
     let subTabValidaActual = "Valida 1";
     let mapaResultadosGlobal = {};
+    let mapaCarrerasInscritosAdmin = {};
 
     const storageSeguro = {
       getItem: function(key) {
@@ -735,6 +736,7 @@
 
     window.onload = function() {
       generarEstructuraValidas();
+      sincronizarCarrerasAdmin();
       var savedUser = storageSeguro.getItem('macuare_admin_user');
       if (savedUser) {
         document.getElementById('loginSection').classList.add('hidden');
@@ -750,11 +752,55 @@
       if(document.getElementById('nuevaFecha')) document.getElementById('nuevaFecha').value = hoy;
     };
 
+    function sincronizarCarrerasAdmin() {
+      enviarPeticion({ action: 'getCarreras' }, function(data) {
+        mapaCarrerasInscritosAdmin = {};
+        if (data && data.success && data.data) {
+          data.data.forEach(c => {
+            let validaName = String(c.carrera || c.Valida || "").trim();
+            let match = validaName.match(/(\d+)/);
+            if (match) {
+              let idx = parseInt(match[1]);
+              if (idx >= 1 && idx <= 6) {
+                if (!mapaCarrerasInscritosAdmin[idx]) {
+                  mapaCarrerasInscritosAdmin[idx] = [];
+                }
+                mapaCarrerasInscritosAdmin[idx].push({
+                  numero: String(c.numero || "").trim(),
+                  estado: String(c.estado || "").trim().toLowerCase()
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+    function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
+      let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
+      let numActual = parseInt(numeroJugado);
+      if (isNaN(numActual)) return numeroJugado;
+
+      let maxIter = 30; // Seguridad para evitar bucles infinitos
+      while (maxIter > 0) {
+        let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
+        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+        if (esRetirado) {
+          numActual++;
+        } else {
+          break;
+        }
+        maxIter--;
+      }
+      return String(numActual);
+    }
+
     function generarEstructuraValidas() {
       var html = '';
       for(let i=1; i<=6; i++) {
         html += `
-          <div class="valida-box">
+          valida-box">
             <label style="color: var(--accent); font-weight: bold;">Valida ${i}</label>
             <div class="grid-3" style="margin-top: 6px;">
               <div><label style="font-size:0.7rem;">1° Lugar</label><input type="number" id="v${i}_1" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
@@ -943,6 +989,7 @@
           cargarResultadosGuardados();
           cargarTopeRiesgo();
           cargarBalancesCajas();
+          sincronizarCarrerasAdmin();
           iniciarAutoActualizacion();
         } else {
           alertBox.className = "alert alert-error";
@@ -964,6 +1011,7 @@
         var panelAdmin = document.getElementById('adminPanel');
         if (!panelAdmin || panelAdmin.classList.contains('hidden') || document.hidden || isTypingRefPago) return;
 
+        sincronizarCarrerasAdmin();
         if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
           cargarDatosCarreras();
         } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
@@ -992,6 +1040,7 @@
       document.getElementById(tabId).classList.remove('hidden');
       btnElement.classList.add('active');
 
+      sincronizarCarrerasAdmin();
       if (tabId === 'tabCarreras') cargarDatosCarreras();
       if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
       if (tabId === 'tabCajas') cargarBalancesCajas();
@@ -1082,6 +1131,7 @@
         mostrarAlerta((res && res.message) ? res.message : "¡Registrado!", "success", 4000);
         document.getElementById('nuevoNumero').value = '';
         document.getElementById('nuevoEjemplar').value = '';
+        sincronizarCarrerasAdmin();
         cargarDatosCarreras();
       });
     }
@@ -1090,6 +1140,7 @@
       mostrarAlerta("Retirando ejemplar...", "success", 0);
       enviarPeticion({ action: 'retirarEjemplar', carrera: carrera, numero: numero }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Retirado con éxito!", "success", 4000);
+        sincronizarCarrerasAdmin();
         cargarDatosCarreras();
       });
     }
@@ -1164,6 +1215,7 @@
       var tbody = document.getElementById('tablaPagoMovilBody');
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--accent);">Cargando pagos...</td></tr>';
 
+      sincronizarCarrerasAdmin();
       enviarPeticion({ action: 'getResultados' }, function(resRes) {
         if (resRes && resRes.success && resRes.data) {
           mapaResultadosGlobal = {};
@@ -1375,6 +1427,7 @@
     }
 
     function cargarDatosTicketsAudit() {
+      sincronizarCarrerasAdmin();
       enviarPeticion({ action: 'getResultados' }, function(resRes) {
         if (resRes && resRes.success && resRes.data) {
           mapaResultadosGlobal = {};
@@ -1434,6 +1487,7 @@
       }, 200);
     }
 
+    // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
     function evaluarCombinacionViva(subComboStr) {
       var partesLimpias = subComboStr.split('(')[0];
       var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1441,11 +1495,14 @@
       for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
         var resultadoInfo = mapaResultadosGlobal[validaIdx];
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-          var caballoJugado = caballosElegidos[validaIdx - 1];
-          if (caballoJugado) {
+          var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+          if (caballoJugadoOriginal) {
+            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
+            var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
+
             var puestosPermitidos = resultadoInfo.puestos;
             var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-            if (!ganadoresValidos.includes(caballoJugado)) {
+            if (!ganadoresValidos.includes(caballoEfectivo)) {
               return false;
             }
           }
