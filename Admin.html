@@ -780,12 +780,12 @@
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
-      if (isNaN(numActual)) return String(numeroJugado);
+      if (isNaN(numActual)) return numeroJugado;
 
       let maxIter = 30; // Seguridad para evitar bucles infinitos
       while (maxIter > 0) {
         let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = !caballoInfo || caballoInfo.estado.toLowerCase().includes("retirado");
+        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
         if (esRetirado) {
           numActual++;
         } else {
@@ -886,9 +886,7 @@
                 var c1 = String(row.CaballoGanador || "").trim();
                 var c2 = String(row['2do lugar'] || "").trim();
                 var c3 = String(row['3er lugar'] || "").trim();
-                
-                var puestosValidosVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
-                var puestosValidos = parseInt(puestosValidosVal) || 3;
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
 
                 mapaResultadosGlobal[idx] = {
                   ganadores: [c1, c2, c3].filter(c => c !== ""),
@@ -975,29 +973,14 @@
         return;
       }
 
-      var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
-
-      if (esAdminMaster) {
-        storageSeguro.setItem('macuare_admin_user', usuario);
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        document.getElementById('lblAdminUser').innerText = usuario;
-        
-        cargarResultadosGuardados();
-        cargarTopeRiesgo();
-        cargarBalancesCajas();
-        sincronizarCarrerasAdmin();
-        iniciarAutoActualizacion();
-        return;
-      }
-
       alertBox.className = "alert alert-success";
       alertBox.innerText = "Verificando credenciales...";
       alertBox.classList.remove('hidden');
 
       enviarPeticion({ action: 'login', usuario: usuario, password: password }, function(res) {
-        if (res && res.success && String(res.rol).toLowerCase() === 'admin') {
-          var nombreUsuarioValido = res.usuario || usuario;
+        var esAdminMaster = (usuario.toLowerCase() === 'mfadmin' && password === '1234');
+        if ((res && res.success && String(res.rol).toLowerCase() === 'admin') || esAdminMaster) {
+          var nombreUsuarioValido = (res && res.usuario) ? res.usuario : usuario;
           storageSeguro.setItem('macuare_admin_user', nombreUsuarioValido);
           document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
@@ -1173,12 +1156,11 @@
             resResultados.data.forEach(function(row) {
               var nombreValida = String(row.Valida || "").trim();
               if (nombreValida !== "") {
-                var pVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
                 mapaGanadores[nombreValida] = {
                   1: String(row.CaballoGanador || "").trim(),
                   2: String(row['2do lugar'] || "").trim(),
                   3: String(row['3er lugar'] || "").trim(),
-                  puestos: String(pVal).trim(),
+                  puestos: String(row.puestosValidos || '3').trim(),
                   tieneResultado: (String(row.CaballoGanador || "") !== "" || String(row['2do lugar'] || "") !== "")
                 };
               }
@@ -1246,8 +1228,7 @@
                 var c1 = String(row.CaballoGanador || "").trim();
                 var c2 = String(row['2do lugar'] || "").trim();
                 var c3 = String(row['3er lugar'] || "").trim();
-                var puestosValidosVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
-                var puestosValidos = parseInt(puestosValidosVal) || 3;
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
                 mapaResultadosGlobal[idx] = {
                   ganadores: [c1, c2, c3].filter(c => c !== ""),
                   puestos: puestosValidos
@@ -1260,9 +1241,8 @@
         enviarPeticion({ action: 'getTickets' }, function(res) {
           if (res && res.success && res.data && res.data.length > 0) {
             var ganadores = res.data.filter(function(t) {
-              var estatusCalculado = calcularEstatusRealTicket(t);
-              var estatusLower = String(estatusCalculado).trim().toLowerCase();
-              return estatusLower.includes('ganador') && !estatusLower.includes('pagado');
+              var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+              return estatus.includes('ganador') && !estatus.includes('pagado');
             });
 
             if (ganadores.length > 0) {
@@ -1460,8 +1440,7 @@
                 var c1 = String(row.CaballoGanador || "").trim();
                 var c2 = String(row['2do lugar'] || "").trim();
                 var c3 = String(row['3er lugar'] || "").trim();
-                var puestosValidosVal = row['Puestos Válidos'] || row['puestosValidos'] || row['PuestosValidos'] || row['puestos'] || '3';
-                var puestosValidos = parseInt(puestosValidosVal) || 3;
+                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
                 mapaResultadosGlobal[idx] = {
                   ganadores: [c1, c2, c3].filter(c => c !== ""),
                   puestos: puestosValidos
@@ -1490,7 +1469,7 @@
           var idTicket = String(t.ID_Ticket || t.id || "").toLowerCase();
           var vendedor = String(t.Vendedor || t.vendedor || "").toLowerCase();
           var jugador = String(t.Jugador || t.jugador || "").toLowerCase();
-          var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
+          var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
 
           var cumpleTexto = !textoBusqueda || idTicket.includes(textoBusqueda) || vendedor.includes(textoBusqueda) || jugador.includes(textoBusqueda);
           
@@ -1508,37 +1487,6 @@
       }, 200);
     }
 
-    // Funciones de validación y cálculo de estatus unificadas
-    function estanTodasLasValidasCorridas() {
-      for (var i = 1; i <= 6; i++) {
-        if (!mapaResultadosGlobal[i] || !mapaResultadosGlobal[i].ganadores || mapaResultadosGlobal[i].ganadores.length === 0) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    function calcularEstatusRealTicket(t) {
-      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
-      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
-      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
-
-      var todasCorridas = estanTodasLasValidasCorridas();
-      var hayAlgunaViva = false;
-
-      subCombos.forEach(function(combo) {
-        if (evaluarCombinacionViva(combo)) {
-          hayAlgunaViva = true;
-        }
-      });
-
-      if (todasCorridas) {
-        return hayAlgunaViva ? "Ganador" : "Perdido";
-      } else {
-        return hayAlgunaViva ? "Vivo / Pendiente" : "Perdido";
-      }
-    }
-
     // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
     function evaluarCombinacionViva(subComboStr) {
       var partesLimpias = subComboStr.split('(')[0];
@@ -1549,6 +1497,7 @@
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
           var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
           if (caballoJugadoOriginal) {
+            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
             var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
 
             var puestosPermitidos = resultadoInfo.puestos;
@@ -1569,7 +1518,7 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(function(t) {
-          var estatus = calcularEstatusRealTicket(t);
+          var estatus = String(t.Estatus || t.estatus || "Pendiente").trim();
           var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
           
           var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
