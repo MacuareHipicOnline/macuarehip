@@ -780,12 +780,12 @@
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
-      if (isNaN(numActual)) return numeroJugado;
+      if (isNaN(numActual)) return String(numeroJugado);
 
       let maxIter = 30; // Seguridad para evitar bucles infinitos
       while (maxIter > 0) {
         let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+        let esRetirado = !caballoInfo || caballoInfo.estado.toLowerCase().includes("retirado");
         if (esRetirado) {
           numActual++;
         } else {
@@ -1703,7 +1703,7 @@
     }
 
     function limpiarFormUsuario() {
-      document.getElementById('editUserId.value').value = '';
+      document.getElementById('editUserId').value = '';
       document.getElementById('usrNombre').value = '';
       document.getElementById('usrPassword').value = '';
       document.getElementById('usrRol').value = 'vendedor';
