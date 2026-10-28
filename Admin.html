@@ -1260,8 +1260,9 @@
         enviarPeticion({ action: 'getTickets' }, function(res) {
           if (res && res.success && res.data && res.data.length > 0) {
             var ganadores = res.data.filter(function(t) {
-              var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
-              return estatus.includes('ganador') && !estatus.includes('pagado');
+              var estatusCalculado = calcularEstatusRealTicket(t);
+              var estatusLower = String(estatusCalculado).trim().toLowerCase();
+              return estatusLower.includes('ganador') && !estatusLower.includes('pagado');
             });
 
             if (ganadores.length > 0) {
@@ -1489,7 +1490,7 @@
           var idTicket = String(t.ID_Ticket || t.id || "").toLowerCase();
           var vendedor = String(t.Vendedor || t.vendedor || "").toLowerCase();
           var jugador = String(t.Jugador || t.jugador || "").toLowerCase();
-          var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+          var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
 
           var cumpleTexto = !textoBusqueda || idTicket.includes(textoBusqueda) || vendedor.includes(textoBusqueda) || jugador.includes(textoBusqueda);
           
@@ -1505,6 +1506,37 @@
         });
         renderizarTicketsAudit(filtrados);
       }, 200);
+    }
+
+    // Funciones de validación y cálculo de estatus unificadas
+    function estanTodasLasValidasCorridas() {
+      for (var i = 1; i <= 6; i++) {
+        if (!mapaResultadosGlobal[i] || !mapaResultadosGlobal[i].ganadores || mapaResultadosGlobal[i].ganadores.length === 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function calcularEstatusRealTicket(t) {
+      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
+
+      var todasCorridas = estanTodasLasValidasCorridas();
+      var hayAlgunaViva = false;
+
+      subCombos.forEach(function(combo) {
+        if (evaluarCombinacionViva(combo)) {
+          hayAlgunaViva = true;
+        }
+      });
+
+      if (todasCorridas) {
+        return hayAlgunaViva ? "Ganador" : "Perdido";
+      } else {
+        return hayAlgunaViva ? "Vivo / Pendiente" : "Perdido";
+      }
     }
 
     // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
@@ -1537,7 +1569,7 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(function(t) {
-          var estatus = String(t.Estatus || t.estatus || "Pendiente").trim();
+          var estatus = calcularEstatusRealTicket(t);
           var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
           
           var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
@@ -1671,7 +1703,7 @@
     }
 
     function limpiarFormUsuario() {
-      document.getElementById('editUserId').value = '';
+      document.getElementById('editUserId.value').value = '';
       document.getElementById('usrNombre').value = '';
       document.getElementById('usrPassword').value = '';
       document.getElementById('usrRol').value = 'vendedor';
