@@ -1,7 +1,7 @@
 /**
  * CÓDIGO CONSOLIDADO, UNIFICADO Y OPTIMIZADO - SISTEMA MACUARE HÍPICO
  * Pestañas: Usuarios, Carreras, Tickets, Resultados, Caja_Vendedores, Historial_Metricas, Ajustes_Banca
- * Actualizado con Desglose Dinámico y Cálculo Real de Premios por Sub-Jugada
+ * Actualizado con Desglose Dinámico, Cálculo Real de Premios y Sincronización Inmediata de Estatus
  */
 
 const COMISION_QUEDA = 0.30;
