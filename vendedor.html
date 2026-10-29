@@ -1007,6 +1007,7 @@
         let listaJugadasActuales = [];
         let indicesJugadasConTopeExcedido = [];
         let seleccionValidasActual = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' };
+        let misTicketsGlobalesCache = [];
 
         function construirSelectoresValidas() {
             let contenedor = document.getElementById("contenedorSelectoresValidas");
@@ -1648,15 +1649,44 @@
             tbodyTickets.innerHTML = htmlTickets;
         }
 
+        // ==========================================
+        // REGLA DE ORO ACTUALIZADA PARA LA CAJA Y CUADRE
+        // ==========================================
         function renderizarCajaUI(miCaja) {
-            if (!miCaja) return;
+            if (!miCaja) miCaja = { ventas: 0, premios: 0, laQueda: 0, comision: 0 };
             datosCajaActual = miCaja;
             
             let ventas = Number(miCaja.ventas !== undefined ? miCaja.ventas : (miCaja.Ventas !== undefined ? miCaja.Ventas : 0));
-            let premios = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
-            let laQueda = Number(miCaja.laQueda !== undefined ? miCaja.laQueda : (miCaja.LaQueda !== undefined ? miCaja.LaQueda : 0));
-            let comision = Number(miCaja.comision !== undefined ? miCaja.comision : (miCaja.Comision !== undefined ? miCaja.Comision : 0));
-            let enviarBanca = laQueda - comision;
+            
+            // Cálculo dinámico de premios basado en los tickets ganadores reales de la taquilla si el backend manda 0
+            let premiosNube = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
+            let premiosCalculadosLocal = 0;
+
+            misTicketsGlobalesCache.forEach(t => {
+                let estatus = String(t.Estatus || t.estatus || '').trim().toLowerCase();
+                if (estatus.includes('ganad') || estatus.includes('pagad')) {
+                    let seleccion = t.Seleccion6 || t.Combinacion || '';
+                    let partesSub = seleccion.split(" | ");
+                    let sumaG = 0;
+                    partesSub.forEach(sub => {
+                        if (evaluarCombinacionViva(sub)) {
+                            let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                            if (matchM) {
+                                sumaG += parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
+                            }
+                        }
+                    });
+                    let montoT = Number(t.Monto || t.monto || 0);
+                    premiosCalculadosLocal += (sumaG > 0 ? sumaG * 10 : montoT * 10);
+                }
+            });
+
+            let premios = Math.max(premiosNube, premiosCalculadosLocal);
+            
+            let laQueda = ventas - premios;
+            let comision = 0;
+            let enviarBanca = 0;
+            let montoModalFinal = 0;
 
             let txtVentasEl = document.getElementById("txtVentas");
             let txtPremiosEl = document.getElementById("txtPremios");
@@ -1666,24 +1696,32 @@
 
             txtVentasEl.innerText = "Bs " + ventas.toLocaleString('es-VE', {minimumFractionDigits: 2});
             txtPremiosEl.innerText = "Bs " + premios.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            txtLaQuedaEl.innerText = "Bs " + laQueda.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            txtGananciaEl.innerText = "Bs " + comision.toLocaleString('es-VE', {minimumFractionDigits: 2});
-            txtEnviarBancaEl.innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
 
-            if (laQueda < 0) {
+            if (premios > ventas) {
+                // REGLA DE ORO 1: Si los premios son mayores a las ventas, se envía completo el dinero de las ventas
+                laQueda = -premios;
+                comision = 0;
+                enviarBanca = ventas; 
+                montoModalFinal = ventas;
+
                 txtLaQuedaEl.className = "text-red";
-            } else {
-                txtLaQuedaEl.className = "text-yellow";
-            }
-
-            if (enviarBanca < 0) {
+                txtGananciaEl.innerText = "Bs 0.00 (Premios > Ventas)";
                 txtEnviarBancaEl.className = "text-red";
             } else {
+                // REGLA DE ORO 2: Si las ventas superan a los premios, el vendedor se queda con el 30% de la queda
+                comision = laQueda * 0.30;
+                enviarBanca = laQueda - comision;
+                montoModalFinal = enviarBanca;
+
+                txtLaQuedaEl.className = "text-yellow";
+                txtGananciaEl.innerText = "Bs " + comision.toLocaleString('es-VE', {minimumFractionDigits: 2});
                 txtEnviarBancaEl.className = "";
                 txtEnviarBancaEl.style.color = "#1e5620";
             }
 
-            let montoModalFinal = (enviarBanca < 0) ? ventas : enviarBanca;
+            txtLaQuedaEl.innerText = "Bs " + laQueda.toLocaleString('es-VE', {minimumFractionDigits: 2});
+            txtEnviarBancaEl.innerText = "Bs " + enviarBanca.toLocaleString('es-VE', {minimumFractionDigits: 2});
+
             document.getElementById("montoTransferirModal").innerText = "Bs " + montoModalFinal.toLocaleString('es-VE', {minimumFractionDigits: 2});
         }
 
@@ -1693,8 +1731,22 @@
 
             cargarResultadosGlobalesAdmin();
 
-            let urlCajas = `${URL_WEB_APP}?action=getCajas`;
-            fetch(urlCajas)
+            let urlTickets = `${URL_WEB_APP}?action=getTickets`;
+            fetch(urlTickets)
+                .then(res => res.json())
+                .then(data => {
+                    let misTickets = [];
+                    if (data.success && data.data) {
+                        misTickets = data.data.filter(t => String(t.Vendedor || t.vendedor || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
+                        misTickets.reverse();
+                    }
+                    misTicketsGlobalesCache = misTickets;
+                    localStorage.setItem(cacheKeyTickets, JSON.stringify(misTickets));
+                    renderizarTablaTicketsUI(misTickets, vendedorId);
+
+                    let urlCajas = `${URL_WEB_APP}?action=getCajas`;
+                    return fetch(urlCajas);
+                })
                 .then(res => res.json())
                 .then(data => {
                     let miCaja = null;
@@ -1706,36 +1758,20 @@
                         localStorage.setItem(cacheKeyCaja, JSON.stringify(miCaja));
                         renderizarCajaUI(miCaja);
                     } else {
-                        localStorage.removeItem(cacheKeyCaja);
-                        renderizarCajaUI({ ventas: 0, premios: 0, laQueda: 0, comision: 0 });
+                        let ventasTotalesLocal = misTicketsGlobalesCache.reduce((sum, t) => sum + Number(t.Monto || t.monto || 0), 0);
+                        renderizarCajaUI({ ventas: ventasTotalesLocal, premios: 0, laQueda: ventasTotalesLocal, comision: ventasTotalesLocal * 0.30 });
                     }
                 })
                 .catch(err => {
                     console.warn("Aviso: No se pudo conectar a la nube para la caja.", err);
-                    let cajaLocal = localStorage.getItem(cacheKeyCaja);
-                    if (cajaLocal) {
-                        try { renderizarCajaUI(JSON.parse(cajaLocal)); } catch(e) {}
-                    }
-                });
-
-            let urlTickets = `${URL_WEB_APP}?action=getTickets`;
-            fetch(urlTickets)
-                .then(res => res.json())
-                .then(data => {
-                    let misTickets = [];
-                    if (data.success && data.data) {
-                        misTickets = data.data.filter(t => String(t.Vendedor || t.vendedor || '').trim().toLowerCase() === String(vendedorId).trim().toLowerCase());
-                        misTickets.reverse();
-                    }
-                    
-                    localStorage.setItem(cacheKeyTickets, JSON.stringify(misTickets));
-                    renderizarTablaTicketsUI(misTickets, vendedorId);
-                })
-                .catch(err => {
-                    console.warn("Aviso: No se pudieron actualizar tickets desde la nube.", err);
                     let ticketsLocales = localStorage.getItem(cacheKeyTickets);
                     if (ticketsLocales) {
-                        try { renderizarTablaTicketsUI(JSON.parse(ticketsLocales), vendedorId); } catch(e) {}
+                        try { 
+                            misTicketsGlobalesCache = JSON.parse(ticketsLocales);
+                            renderizarTablaTicketsUI(misTicketsGlobalesCache, vendedorId);
+                            let ventasLocales = misTicketsGlobalesCache.reduce((sum, t) => sum + Number(t.Monto || t.monto || 0), 0);
+                            renderizarCajaUI({ ventas: ventasLocales, premios: 0 });
+                        } catch(e) {}
                     }
                 });
         }
