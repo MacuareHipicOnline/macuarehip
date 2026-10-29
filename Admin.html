@@ -776,7 +776,9 @@
       });
     }
 
-    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+    // ==========================================
+    // MOTOR DE EVALUACIÓN IDÉNTICO AL VENDEDOR
+    // ==========================================
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
@@ -795,6 +797,52 @@
       }
       return String(numActual);
     }
+
+    function evaluarCombinacionViva(subComboStr) {
+      var partesLimpias = subComboStr.split('(')[0];
+      var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
+
+      for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
+        var resultadoInfo = mapaResultadosGlobal[validaIdx];
+        if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
+          var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+          if (caballoJugadoOriginal) {
+            var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
+            var puestosPermitidos = resultadoInfo.puestos;
+            var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+            if (!ganadoresValidos.includes(caballoEfectivo)) {
+              return false; // Caída en esta sub-combinación
+            }
+          }
+        }
+      }
+      return true; // Sigue viva
+    }
+
+    function calcularEstatusRealTicket(t) {
+      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
+
+      var estatusNube = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+      if (estatusNube.includes('pagad')) return "Pagado";
+      if (estatusNube.includes('ganador')) return "Ganador";
+
+      var hayAlgunaViva = false;
+      subCombos.forEach(function(combo) {
+        if (evaluarCombinacionViva(combo)) {
+          hayAlgunaViva = true;
+        }
+      });
+
+      // Si tiene al menos una sub-combinación viva, se mantiene en Vivo / Pendiente
+      if (hayAlgunaViva) {
+        return "Vivo / Pendiente";
+      } else {
+        return "Perdedor";
+      }
+    }
+    // ==========================================
 
     function generarEstructuraValidas() {
       var html = '';
@@ -1053,8 +1101,6 @@
       if (tabId === 'tabProcesar') cargarResultadosGuardados();
     }
 
-    // CORRECCIÓN CLAVE: Al guardar la válida, aseguramos que el backend no fuerze "Perdedor" 
-    // si el ticket cuenta con sub-combinaciones vivas, protegiendo la lectura unificada.
     function guardarValidaIndividual(numValida) {
       var g1_val = document.getElementById('v' + numValida + '_1').value || "";
       var g2_val = document.getElementById('v' + numValida + '_2').value || "";
@@ -1083,6 +1129,7 @@
       enviarPeticion(payload, function(res) {
         var msg = (res && res.message) ? res.message : ("¡Válida " + numValida + " guardada correctamente!");
         mostrarAlerta(msg, "success", 4000);
+        sincronizarCarrerasAdmin();
         cargarResultadosGuardados();
         cargarDatosCarreras();
         cargarDatosTicketsAudit();
@@ -1487,73 +1534,6 @@
         });
         renderizarTicketsAudit(filtrados);
       }, 200);
-    }
-
-    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
-    function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
-      let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
-      let numActual = parseInt(numeroJugado);
-      if (isNaN(numActual)) return numeroJugado;
-
-      let maxIter = 30; // Seguridad para evitar bucles infinitos
-      while (maxIter > 0) {
-        let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = caballoInfo && caballoInfo.estado && caballoInfo.estado.toLowerCase().includes("retirado");
-        if (esRetirado) {
-          numActual++;
-        } else {
-          break;
-        }
-        maxIter--;
-      }
-      return String(numActual);
-    }
-
-    // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
-    function evaluarCombinacionViva(subComboStr) {
-      var partesLimpias = subComboStr.split('(')[0];
-      var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
-
-      for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
-        var resultadoInfo = mapaResultadosGlobal[validaIdx];
-        if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-          var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
-          if (caballoJugadoOriginal) {
-            var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
-            var puestosPermitidos = resultadoInfo.puestos;
-            var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-            if (!ganadoresValidos.includes(caballoEfectivo)) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    }
-
-    // Cálculo unificado inteligente del estatus real en vivo para el Admin, Vendedor y Tickets
-    function calcularEstatusRealTicket(t) {
-      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
-      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
-      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
-
-      var estatusNube = String(t.Estatus || t.estatus || "").trim().toLowerCase();
-      if (estatusNube.includes('pagad')) return "Pagado";
-      if (estatusNube.includes('ganador')) return "Ganador";
-
-      var hayAlgunaViva = false;
-      subCombos.forEach(function(combo) {
-        if (evaluarCombinacionViva(combo)) {
-          hayAlgunaViva = true;
-        }
-      });
-
-      // Si tiene al menos una sub-combinación viva, NUNCA debe considerarse perdedor (es Pendiente)
-      if (hayAlgunaViva) {
-        return "Pendiente";
-      } else {
-        return "Perdedor";
-      }
     }
 
     function renderizarTicketsAudit(dataList) {
