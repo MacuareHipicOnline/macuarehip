@@ -390,7 +390,7 @@
       <!-- CÓMPUTO -->
       <div id="tabProcesar" class="tab-content">
         <div class="card">
-          <h3>Ingreso de Ganadores (Puestos por Válida)</h3>
+          <h3>Ingreso de Ganadores (Puestos por Valida)</h3>
           <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">Indique el número de los ejemplares ganadores y cuántos puestos fueron válidos para la carrera.</p>
           
           <div class="grid-2" id="contenedorValidasForm"></div>
@@ -413,7 +413,7 @@
           <h3>Registrar Ejemplar</h3>
           <div class="grid-3">
             <div class="form-group"><label>Hipódromo:</label><select id="nuevoHipodromo"><option value="La Rinconada">La Rinconada</option><option value="Valencia">Valencia</option></select></div>
-            <div class="form-group"><label>Válida / Carrera:</label><select id="nuevaValida"><option value="Valida 1">Valida 1</option><option value="Valida 2">Valida 2</option><option value="Valida 3">Valida 3</option><option value="Valida 4">Valida 4</option><option value="Valida 5">Valida 5</option><option value="Valida 6">Valida 6</option></select></div>
+            <div class="form-group"><label>Valida / Carrera:</label><select id="nuevaValida"><option value="Valida 1">Valida 1</option><option value="Valida 2">Valida 2</option><option value="Valida 3">Valida 3</option><option value="Valida 4">Valida 4</option><option value="Valida 5">Valida 5</option><option value="Valida 6">Valida 6</option></select></div>
             <div class="form-group"><label>N° Reunión:</label><input type="text" id="nuevaReunion" placeholder="Ej: 035"></div>
           </div>
           <div class="grid-4" style="margin-top: 10px;">
@@ -431,16 +431,16 @@
 
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3>Lista en Vivo por Válidas</h3>
+            <h3>Lista en Vivo por Validas</h3>
           </div>
 
           <div class="sub-tabs">
-            <button class="sub-tab-btn active" onclick="cambiarSubTabValida('Valida 1', this)">Válida 1</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 2', this)">Válida 2</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 3', this)">Válida 3</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 4', this)">Válida 4</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 5', this)">Válida 5</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 6', this)">Válida 6</button>
+            <button class="sub-tab-btn active" onclick="cambiarSubTabValida('Valida 1', this)">Valida 1</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 2', this)">Valida 2</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 3', this)">Valida 3</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 4', this)">Valida 4</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 5', this)">Valida 5</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 6', this)">Valida 6</button>
           </div>
 
           <div class="table-container">
@@ -809,14 +809,14 @@
               <div><label style="font-size:0.7rem;">3° Lugar</label><input type="number" id="v${i}_3" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
             </div>
             <div style="margin-top: 8px;">
-              <label style="font-size:0.7rem;">Puestos Válidos</label>
+              <label style="font-size:0.7rem;">Puestos Validos</label>
               <select id="v${i}_puestos" onchange="guardarLocalmenteOptimizado()">
                 <option value="3">3 Puestos</option>
                 <option value="2">2 Puestos</option>
                 <option value="1">1 Puesto</option>
               </select>
             </div>
-            <button class="btn-valida-guardar" onclick="confirmarAccion('guardar_valida_${i}', '¿Desea guardar y procesar los resultados de la Válida ${i}?', function() { guardarValidaIndividual(${i}); })">💾 Guardar Válida ${i}</button>
+            <button class="btn-valida-guardar" onclick="confirmarAccion('guardar_valida_${i}', '¿Desea guardar y procesar los resultados de la Valida ${i}?', function() { guardarValidaIndividual(${i}); })">💾 Guardar Valida ${i}</button>
           </div>
         `;
       }
@@ -1062,12 +1062,12 @@
       var g2_val = document.getElementById('v' + numValida + '_2').value || "";
       
       if (!g1_val && !g2_val) {
-        if (!confirm("Está guardando la Válida " + numValida + " vacía. ¿Desea continuar?")) {
+        if (!confirm("Está guardando la Valida " + numValida + " vacía. ¿Desea continuar?")) {
           return;
         }
       }
 
-      mostrarAlerta("Guardando Válida " + numValida + " y procesando...", "success", 0);
+      mostrarAlerta("Guardando Valida " + numValida + " y procesando...", "success", 0);
       guardarLocalmenteOptimizado();
 
       var payload = { action: 'guardarResultados', validaIndividual: numValida };
@@ -1083,7 +1083,7 @@
       }
 
       enviarPeticion(payload, function(res) {
-        var msg = (res && res.message) ? res.message : ("¡Válida " + numValida + " guardada correctamente!");
+        var msg = (res && res.message) ? res.message : ("¡Valida " + numValida + " guardada correctamente!");
         mostrarAlerta(msg, "success", 4000);
         
         // Secuencia sincronizada: primero actualizamos memoria de resultados y carreras, luego auditamos los tickets
