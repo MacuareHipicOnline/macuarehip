@@ -752,7 +752,7 @@
       if(document.getElementById('nuevaFecha')) document.getElementById('nuevaFecha').value = hoy;
     };
 
-    function sincronizarCarrerasAdmin() {
+    function sincronizarCarrerasAdmin(callbackFinal) {
       enviarPeticion({ action: 'getCarreras' }, function(data) {
         mapaCarrerasInscritosAdmin = {};
         if (data && data.success && data.data) {
@@ -773,12 +773,11 @@
             }
           });
         }
+        if (callbackFinal) callbackFinal();
       });
     }
 
-    // ==========================================
-    // MOTOR DE EVALUACIÓN IDÉNTICO AL VENDEDOR
-    // ==========================================
+    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
@@ -787,7 +786,7 @@
       let maxIter = 30; // Seguridad para evitar bucles infinitos
       while (maxIter > 0) {
         let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = caballoInfo && caballoInfo.estado && caballoInfo.estado.toLowerCase().includes("retirado");
+        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
         if (esRetirado) {
           numActual++;
         } else {
@@ -797,52 +796,6 @@
       }
       return String(numActual);
     }
-
-    function evaluarCombinacionViva(subComboStr) {
-      var partesLimpias = subComboStr.split('(')[0];
-      var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
-
-      for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
-        var resultadoInfo = mapaResultadosGlobal[validaIdx];
-        if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
-          var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
-          if (caballoJugadoOriginal) {
-            var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
-            var puestosPermitidos = resultadoInfo.puestos;
-            var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
-            if (!ganadoresValidos.includes(caballoEfectivo)) {
-              return false; // Caída en esta sub-combinación
-            }
-          }
-        }
-      }
-      return true; // Sigue viva
-    }
-
-    function calcularEstatusRealTicket(t) {
-      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
-      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
-      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
-
-      var estatusNube = String(t.Estatus || t.estatus || "").trim().toLowerCase();
-      if (estatusNube.includes('pagad')) return "Pagado";
-      if (estatusNube.includes('ganador')) return "Ganador";
-
-      var hayAlgunaViva = false;
-      subCombos.forEach(function(combo) {
-        if (evaluarCombinacionViva(combo)) {
-          hayAlgunaViva = true;
-        }
-      });
-
-      // Si tiene al menos una sub-combinación viva, se mantiene en Vivo / Pendiente
-      if (hayAlgunaViva) {
-        return "Vivo / Pendiente";
-      } else {
-        return "Perdedor";
-      }
-    }
-    // ==========================================
 
     function generarEstructuraValidas() {
       var html = '';
@@ -911,7 +864,7 @@
       }, 300);
     }
 
-    function cargarResultadosGuardados() {
+    function cargarResultadosGuardados(callbackFinal) {
       try {
         var localCache = JSON.parse(storageSeguro.getItem('macuare_resultados_cache') || '{}');
         for (var i = 1; i <= 6; i++) {
@@ -950,6 +903,7 @@
           });
           guardarLocalmenteOptimizado();
         }
+        if (callbackFinal) callbackFinal();
       });
     }
 
@@ -1059,22 +1013,23 @@
         var panelAdmin = document.getElementById('adminPanel');
         if (!panelAdmin || panelAdmin.classList.contains('hidden') || document.hidden || isTypingRefPago) return;
 
-        sincronizarCarrerasAdmin();
-        if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
-          cargarDatosCarreras();
-        } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
-          cargarDatosPagoMovil();
-        } else if (!document.getElementById('tabCajas').classList.contains('hidden')) {
-          cargarBalancesCajas();
-        } else if (!document.getElementById('tabEstadisticas').classList.contains('hidden')) {
-          cargarDatosEstadisticas();
-          cargarDatosTicketsAudit();
-          cargarTopeRiesgo();
-        } else if (!document.getElementById('tabUsuarios').classList.contains('hidden')) {
-          cargarUsuariosSistema();
-        } else if (!document.getElementById('tabProcesar').classList.contains('hidden')) {
-          cargarResultadosGuardados();
-        }
+        sincronizarCarrerasAdmin(function() {
+          if (!document.getElementById('tabCarreras').classList.contains('hidden')) {
+            cargarDatosCarreras();
+          } else if (!document.getElementById('tabPagoMovil').classList.contains('hidden')) {
+            cargarDatosPagoMovil();
+          } else if (!document.getElementById('tabCajas').classList.contains('hidden')) {
+            cargarBalancesCajas();
+          } else if (!document.getElementById('tabEstadisticas').classList.contains('hidden')) {
+            cargarDatosEstadisticas();
+            cargarDatosTicketsAudit();
+            cargarTopeRiesgo();
+          } else if (!document.getElementById('tabUsuarios').classList.contains('hidden')) {
+            cargarUsuariosSistema();
+          } else if (!document.getElementById('tabProcesar').classList.contains('hidden')) {
+            cargarResultadosGuardados();
+          }
+        });
       }, 30000);
     }
 
@@ -1088,17 +1043,18 @@
       document.getElementById(tabId).classList.remove('hidden');
       btnElement.classList.add('active');
 
-      sincronizarCarrerasAdmin();
-      if (tabId === 'tabCarreras') cargarDatosCarreras();
-      if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
-      if (tabId === 'tabCajas') cargarBalancesCajas();
-      if (tabId === 'tabEstadisticas') {
-        cargarDatosEstadisticas();
-        cargarDatosTicketsAudit();
-        cargarTopeRiesgo();
-      }
-      if (tabId === 'tabUsuarios') cargarUsuariosSistema();
-      if (tabId === 'tabProcesar') cargarResultadosGuardados();
+      sincronizarCarrerasAdmin(function() {
+        if (tabId === 'tabCarreras') cargarDatosCarreras();
+        if (tabId === 'tabPagoMovil') cargarDatosPagoMovil();
+        if (tabId === 'tabCajas') cargarBalancesCajas();
+        if (tabId === 'tabEstadisticas') {
+          cargarDatosEstadisticas();
+          cargarDatosTicketsAudit();
+          cargarTopeRiesgo();
+        }
+        if (tabId === 'tabUsuarios') cargarUsuariosSistema();
+        if (tabId === 'tabProcesar') cargarResultadosGuardados();
+      });
     }
 
     function guardarValidaIndividual(numValida) {
@@ -1129,10 +1085,14 @@
       enviarPeticion(payload, function(res) {
         var msg = (res && res.message) ? res.message : ("¡Válida " + numValida + " guardada correctamente!");
         mostrarAlerta(msg, "success", 4000);
-        sincronizarCarrerasAdmin();
-        cargarResultadosGuardados();
-        cargarDatosCarreras();
-        cargarDatosTicketsAudit();
+        
+        // Secuencia sincronizada: primero actualizamos memoria de resultados y carreras, luego auditamos los tickets
+        cargarResultadosGuardados(function() {
+          sincronizarCarrerasAdmin(function() {
+            cargarDatosCarreras();
+            cargarDatosTicketsAudit();
+          });
+        });
       });
     }
 
@@ -1150,8 +1110,10 @@
             if (document.getElementById('v' + i + '_3')) document.getElementById('v' + i + '_3').value = '';
             if (document.getElementById('v' + i + '_puestos')) document.getElementById('v' + i + '_puestos').value = '3';
           }
-          cargarDatosCarreras();
-          cargarDatosTicketsAudit();
+          sincronizarCarrerasAdmin(function() {
+            cargarDatosCarreras();
+            cargarDatosTicketsAudit();
+          });
         } else {
           mostrarAlerta("Error al procesar el reinicio.", "error", 4000);
         }
@@ -1180,8 +1142,9 @@
         mostrarAlerta((res && res.message) ? res.message : "¡Registrado!", "success", 4000);
         document.getElementById('nuevoNumero').value = '';
         document.getElementById('nuevoEjemplar').value = '';
-        sincronizarCarrerasAdmin();
-        cargarDatosCarreras();
+        sincronizarCarrerasAdmin(function() {
+          cargarDatosCarreras();
+        });
       });
     }
 
@@ -1189,8 +1152,9 @@
       mostrarAlerta("Retirando ejemplar...", "success", 0);
       enviarPeticion({ action: 'retirarEjemplar', carrera: carrera, numero: numero }, function(res) {
         mostrarAlerta((res && res.message) ? res.message : "¡Retirado con éxito!", "success", 4000);
-        sincronizarCarrerasAdmin();
-        cargarDatosCarreras();
+        sincronizarCarrerasAdmin(function() {
+          cargarDatosCarreras();
+        });
       });
     }
 
@@ -1264,90 +1228,91 @@
       var tbody = document.getElementById('tablaPagoMovilBody');
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--accent);">Cargando pagos...</td></tr>';
 
-      sincronizarCarrerasAdmin();
-      enviarPeticion({ action: 'getResultados' }, function(resRes) {
-        if (resRes && resRes.success && resRes.data) {
-          mapaResultadosGlobal = {};
-          resRes.data.forEach(function(row) {
-            var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
-            var match = nombreValida.match(/(\d+)/);
-            if (match) {
-              var idx = parseInt(match[1]);
-              if (idx >= 1 && idx <= 6) {
-                var c1 = String(row.CaballoGanador || "").trim();
-                var c2 = String(row['2do lugar'] || "").trim();
-                var c3 = String(row['3er lugar'] || "").trim();
-                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
-                mapaResultadosGlobal[idx] = {
-                  ganadores: [c1, c2, c3].filter(c => c !== ""),
-                  puestos: puestosValidos
-                };
+      sincronizarCarrerasAdmin(function() {
+        enviarPeticion({ action: 'getResultados' }, function(resRes) {
+          if (resRes && resRes.success && resRes.data) {
+            mapaResultadosGlobal = {};
+            resRes.data.forEach(function(row) {
+              var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+              var match = nombreValida.match(/(\d+)/);
+              if (match) {
+                var idx = parseInt(match[1]);
+                if (idx >= 1 && idx <= 6) {
+                  var c1 = String(row.CaballoGanador || "").trim();
+                  var c2 = String(row['2do lugar'] || "").trim();
+                  var c3 = String(row['3er lugar'] || "").trim();
+                  var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                  mapaResultadosGlobal[idx] = {
+                    ganadores: [c1, c2, c3].filter(c => c !== ""),
+                    puestos: puestosValidos
+                  };
+                }
               }
+            });
+          }
+
+          enviarPeticion({ action: 'getTickets' }, function(res) {
+            if (res && res.success && res.data && res.data.length > 0) {
+              var ganadores = res.data.filter(function(t) {
+                var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+                return estatus.includes('ganador') && !estatus.includes('pagado');
+              });
+
+              if (ganadores.length > 0) {
+                var html = '';
+                ganadores.forEach(function(t) {
+                  var idTicket = t.ID_Ticket || t.id || '';
+                  var vendedor = t.Vendedor || t.vendedor || 'N/D';
+                  var jugador = t.Jugador || t.jugador || 'N/D';
+                  
+                  var banco = t.Banco_PagoMovil || t.banco_PagoMovil || t.Banco || 'N/D';
+                  var telefono = t.Telefono_PagoMovil || t.telefono_PagoMovil || t.Telefono || 'N/D';
+                  var cedula = t.Cedula_PagoMovil || t.cedula_PagoMovil || t.Cedula || 'N/D';
+
+                  var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+                  var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+                  var premioCalculado = 0;
+
+                  subCombos.forEach(function(combo) {
+                    var estaViva = evaluarCombinacionViva(combo);
+                    if (estaViva) {
+                      var matchMonto = combo.match(/\(Bs\s*([\d\.,]+)\)/i) || combo.match(/\(([\d\.,]+)\)/);
+                      var montoCombo = 500;
+                      if (matchMonto && matchMonto[1]) {
+                        montoCombo = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 500;
+                      }
+                      premioCalculado += (montoCombo * 10);
+                    }
+                  });
+
+                  if (subCombos.length === 0 || premioCalculado === 0) {
+                    premioCalculado = parseFloat(t.PremioPotencial || t.premioPotencial || t.montoPremio || 0);
+                    if (isNaN(premioCalculado) || premioCalculado === 0) {
+                      var montoGen = parseFloat(t.Monto || t.monto || 0);
+                      premioCalculado = montoGen * 10;
+                    }
+                  }
+
+                  html += '<tr>' +
+                    '<td><b>' + idTicket + '</b></td>' +
+                    '<td>' + vendedor + '</td>' +
+                    '<td>' + jugador + '</td>' +
+                    '<td style="color: var(--accent); font-weight: bold;">' + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                    '<td>' + banco + '</td>' +
+                    '<td>' + telefono + '</td>' +
+                    '<td>' + cedula + '</td>' +
+                    '<td><input type="text" id="ref_pago_' + idTicket + '" placeholder="N° Referencia" onfocus="isTypingRefPago = true;" onblur="isTypingRefPago = false;"></td>' +
+                    '<td><button class="btn-accent" style="padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0;" onclick="procesarPagoMovil(\'' + idTicket + '\')">✅ Pagado</button></td>' +
+                  '</tr>';
+                });
+                tbody.innerHTML = html;
+              } else {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No hay tickets ganadores pendientes.</td></tr>';
+              }
+            } else {
+              tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Sin tickets.</td></tr>';
             }
           });
-        }
-
-        enviarPeticion({ action: 'getTickets' }, function(res) {
-          if (res && res.success && res.data && res.data.length > 0) {
-            var ganadores = res.data.filter(function(t) {
-              var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
-              return estatus.includes('ganador') && !estatus.includes('pagado');
-            });
-
-            if (ganadores.length > 0) {
-              var html = '';
-              ganadores.forEach(function(t) {
-                var idTicket = t.ID_Ticket || t.id || '';
-                var vendedor = t.Vendedor || t.vendedor || 'N/D';
-                var jugador = t.Jugador || t.jugador || 'N/D';
-                
-                var banco = t.Banco_PagoMovil || t.banco_PagoMovil || t.Banco || 'N/D';
-                var telefono = t.Telefono_PagoMovil || t.telefono_PagoMovil || t.Telefono || 'N/D';
-                var cedula = t.Cedula_PagoMovil || t.cedula_PagoMovil || t.Cedula || 'N/D';
-
-                var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
-                var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
-                var premioCalculado = 0;
-
-                subCombos.forEach(function(combo) {
-                  var estaViva = evaluarCombinacionViva(combo);
-                  if (estaViva) {
-                    var matchMonto = combo.match(/\(Bs\s*([\d\.,]+)\)/i) || combo.match(/\(([\d\.,]+)\)/);
-                    var montoCombo = 500;
-                    if (matchMonto && matchMonto[1]) {
-                      montoCombo = parseFloat(matchMonto[1].replace(/\./g, '').replace(',', '.')) || 500;
-                    }
-                    premioCalculado += (montoCombo * 10);
-                  }
-                });
-
-                if (subCombos.length === 0 || premioCalculado === 0) {
-                  premioCalculado = parseFloat(t.PremioPotencial || t.premioPotencial || t.montoPremio || 0);
-                  if (isNaN(premioCalculado) || premioCalculado === 0) {
-                    var montoGen = parseFloat(t.Monto || t.monto || 0);
-                    premioCalculado = montoGen * 10;
-                  }
-                }
-
-                html += '<tr>' +
-                  '<td><b>' + idTicket + '</b></td>' +
-                  '<td>' + vendedor + '</td>' +
-                  '<td>' + jugador + '</td>' +
-                  '<td style="color: var(--accent); font-weight: bold;">' + premioCalculado.toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
-                  '<td>' + banco + '</td>' +
-                  '<td>' + telefono + '</td>' +
-                  '<td>' + cedula + '</td>' +
-                  '<td><input type="text" id="ref_pago_' + idTicket + '" placeholder="N° Referencia" onfocus="isTypingRefPago = true;" onblur="isTypingRefPago = false;"></td>' +
-                  '<td><button class="btn-accent" style="padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0;" onclick="procesarPagoMovil(\'' + idTicket + '\')">✅ Pagado</button></td>' +
-                '</tr>';
-              });
-              tbody.innerHTML = html;
-            } else {
-              tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No hay tickets ganadores pendientes.</td></tr>';
-            }
-          } else {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Sin tickets.</td></tr>';
-          }
         });
       });
     }
@@ -1476,32 +1441,33 @@
     }
 
     function cargarDatosTicketsAudit() {
-      sincronizarCarrerasAdmin();
-      enviarPeticion({ action: 'getResultados' }, function(resRes) {
-        if (resRes && resRes.success && resRes.data) {
-          mapaResultadosGlobal = {};
-          resRes.data.forEach(function(row) {
-            var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
-            var match = nombreValida.match(/(\d+)/);
-            if (match) {
-              var idx = parseInt(match[1]);
-              if (idx >= 1 && idx <= 6) {
-                var c1 = String(row.CaballoGanador || "").trim();
-                var c2 = String(row['2do lugar'] || "").trim();
-                var c3 = String(row['3er lugar'] || "").trim();
-                var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
-                mapaResultadosGlobal[idx] = {
-                  ganadores: [c1, c2, c3].filter(c => c !== ""),
-                  puestos: puestosValidos
-                };
+      sincronizarCarrerasAdmin(function() {
+        enviarPeticion({ action: 'getResultados' }, function(resRes) {
+          if (resRes && resRes.success && resRes.data) {
+            mapaResultadosGlobal = {};
+            resRes.data.forEach(function(row) {
+              var nombreValida = String(row.Valida || row.valida || row.carrera || "").trim();
+              var match = nombreValida.match(/(\d+)/);
+              if (match) {
+                var idx = parseInt(match[1]);
+                if (idx >= 1 && idx <= 6) {
+                  var c1 = String(row.CaballoGanador || "").trim();
+                  var c2 = String(row['2do lugar'] || "").trim();
+                  var c3 = String(row['3er lugar'] || "").trim();
+                  var puestosValidos = parseInt(row.puestosValidos || '3') || 3;
+                  mapaResultadosGlobal[idx] = {
+                    ganadores: [c1, c2, c3].filter(c => c !== ""),
+                    puestos: puestosValidos
+                  };
+                }
               }
-            }
-          });
-        }
+            });
+          }
 
-        enviarPeticion({ action: 'getTickets' }, function(res) {
-          window._cacheTickets = (res && res.success && res.data) ? res.data : [];
-          renderizarTicketsAudit(window._cacheTickets);
+          enviarPeticion({ action: 'getTickets' }, function(res) {
+            window._cacheTickets = (res && res.success && res.data) ? res.data : [];
+            renderizarTicketsAudit(window._cacheTickets);
+          });
         });
       });
     }
@@ -1518,7 +1484,7 @@
           var idTicket = String(t.ID_Ticket || t.id || "").toLowerCase();
           var vendedor = String(t.Vendedor || t.vendedor || "").toLowerCase();
           var jugador = String(t.Jugador || t.jugador || "").toLowerCase();
-          var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
+          var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
 
           var cumpleTexto = !textoBusqueda || idTicket.includes(textoBusqueda) || vendedor.includes(textoBusqueda) || jugador.includes(textoBusqueda);
           
@@ -1536,6 +1502,30 @@
       }, 200);
     }
 
+    // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
+    function evaluarCombinacionViva(subComboStr) {
+      var partesLimpias = subComboStr.split('(')[0];
+      var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
+
+      for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
+        var resultadoInfo = mapaResultadosGlobal[validaIdx];
+        if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
+          var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+          if (caballoJugadoOriginal) {
+            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
+            var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
+
+            var puestosPermitidos = resultadoInfo.puestos;
+            var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+            if (!ganadoresValidos.includes(caballoEfectivo)) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
     function renderizarTicketsAudit(dataList) {
       var tbody = document.getElementById('tablaTicketsAuditBody');
       var vivos = 0, perdidos = 0, pagados = 0, maxRiesgo = 0;
@@ -1543,7 +1533,7 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(function(t) {
-          var estatus = calcularEstatusRealTicket(t);
+          var estatus = String(t.Estatus || t.estatus || "Pendiente").trim();
           var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
           
           var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
