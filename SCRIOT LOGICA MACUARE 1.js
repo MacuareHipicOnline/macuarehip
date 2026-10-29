@@ -1049,6 +1049,39 @@ function procesarResultadosYCalcularGanadores() {
     }
   }
 
+  // 2.1 Sincronización automática de estatus en la pestaña Carreras (Columna D)
+  for (var r = 1; r < resultadosData.length; r++) {
+    if (resultadosData[r][0]) {
+      var valName = String(resultadosData[r][0]).trim();
+      var matchV = valName.match(/(\d+)/);
+      if (matchV) {
+        var idxVal = parseInt(matchV[1]);
+        var resultadoInfo = mapaResultadosGlobal[idxVal];
+        var tieneGanadorReal = resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0;
+        var ganadoresVal = tieneGanadorReal ? resultadoInfo.ganadores : [];
+        var puestosValidos = tieneGanadorReal ? resultadoInfo.puestos : 3;
+        
+        for (var c = 1; c < carrerasData.length; c++) {
+          var valCar = String(carrerasData[c][0]).trim();
+          var matchCar = valCar.match(/(\d+)/);
+          if (matchCar && parseInt(matchCar[1]) === idxVal) {
+            var estCar = String(carrerasData[c][3]).trim().toLowerCase();
+            if (estCar !== "retirado") {
+              var numCarreraStr = String(carrerasData[c][1]).trim();
+              if (tieneGanadorReal) {
+                var ganadoresPremiados = ganadoresVal.slice(0, puestosValidos);
+                var esGanadorPuesto = ganadoresPremiados.indexOf(numCarreraStr) !== -1;
+                sheetCarreras.getRange(c + 1, 4).setValue(esGanadorPuesto ? "GANO" : "CORRIO");
+              } else {
+                sheetCarreras.getRange(c + 1, 4).setValue("PENDIENTE");
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Función interna idéntica a la del Admin para evaluar si una sub-combinación sigue viva
   function evaluarCombinacionVivaBackend(subComboStr) {
     var partesLimpias = subComboStr.split('(')[0];
@@ -1307,8 +1340,10 @@ function recalcularCajasVendedores() {
     var totalVentas = resumenVendedores[v].ventas;
     var totalPremios = resumenVendedores[v].premiosPagados;
     var laQueda = totalVentas - totalPremios;
+    if (laQueda < 0) laQueda = 0; // Si premios superan ventas, la queda es 0
+    
     var comision = laQueda > 0 ? laQueda * COMISION_QUEDA : 0;
-    var netoEntregar = laQueda > 0 ? laQueda * 0.70 : laQueda;
+    var netoEntregar = laQueda > 0 ? laQueda * 0.70 : totalVentas; // Si premios superan ventas, entrega el 100% de la venta
     
     var vKeyNormalized = String(v).trim().toLowerCase();
     var refAnterior = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].referencia) ? estadosPrevios[vKeyNormalized].referencia : "";
