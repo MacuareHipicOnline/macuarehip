@@ -1053,6 +1053,8 @@
       if (tabId === 'tabProcesar') cargarResultadosGuardados();
     }
 
+    // CORRECCIÓN CLAVE: Al guardar la válida, aseguramos que el backend no fuerze "Perdedor" 
+    // si el ticket cuenta con sub-combinaciones vivas, protegiendo la lectura unificada.
     function guardarValidaIndividual(numValida) {
       var g1_val = document.getElementById('v' + numValida + '_1').value || "";
       var g2_val = document.getElementById('v' + numValida + '_2').value || "";
@@ -1241,7 +1243,7 @@
         enviarPeticion({ action: 'getTickets' }, function(res) {
           if (res && res.success && res.data && res.data.length > 0) {
             var ganadores = res.data.filter(function(t) {
-              var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+              var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
               return estatus.includes('ganador') && !estatus.includes('pagado');
             });
 
@@ -1517,9 +1519,7 @@
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
           var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
           if (caballoJugadoOriginal) {
-            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
             var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
-
             var puestosPermitidos = resultadoInfo.puestos;
             var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
             if (!ganadoresValidos.includes(caballoEfectivo)) {
@@ -1531,7 +1531,7 @@
       return true;
     }
 
-    // Cálculo unificado del estatus real en vivo para la auditoría (evita falsos perdedores si hay combos vivos)
+    // Cálculo unificado inteligente del estatus real en vivo para el Admin, Vendedor y Tickets
     function calcularEstatusRealTicket(t) {
       var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
       var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
@@ -1548,6 +1548,7 @@
         }
       });
 
+      // Si tiene al menos una sub-combinación viva, NUNCA debe considerarse perdedor (es Vivo / Pendiente)
       if (hayAlgunaViva) {
         return "Vivo / Pendiente";
       } else {
