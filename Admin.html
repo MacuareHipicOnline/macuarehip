@@ -785,7 +785,7 @@
       let maxIter = 30; // Seguridad para evitar bucles infinitos
       while (maxIter > 0) {
         let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+        let esRetirado = caballoInfo && caballoInfo.estado && caballoInfo.estado.toLowerCase().includes("retirado");
         if (esRetirado) {
           numActual++;
         } else {
@@ -1469,7 +1469,7 @@
           var idTicket = String(t.ID_Ticket || t.id || "").toLowerCase();
           var vendedor = String(t.Vendedor || t.vendedor || "").toLowerCase();
           var jugador = String(t.Jugador || t.jugador || "").toLowerCase();
-          var estatus = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+          var estatus = String(calcularEstatusRealTicket(t)).trim().toLowerCase();
 
           var cumpleTexto = !textoBusqueda || idTicket.includes(textoBusqueda) || vendedor.includes(textoBusqueda) || jugador.includes(textoBusqueda);
           
@@ -1485,6 +1485,26 @@
         });
         renderizarTicketsAudit(filtrados);
       }, 200);
+    }
+
+    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+    function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
+      let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
+      let numActual = parseInt(numeroJugado);
+      if (isNaN(numActual)) return numeroJugado;
+
+      let maxIter = 30; // Seguridad para evitar bucles infinitos
+      while (maxIter > 0) {
+        let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
+        let esRetirado = caballoInfo && caballoInfo.estado && caballoInfo.estado.toLowerCase().includes("retirado");
+        if (esRetirado) {
+          numActual++;
+        } else {
+          break;
+        }
+        maxIter--;
+      }
+      return String(numActual);
     }
 
     // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
@@ -1511,6 +1531,30 @@
       return true;
     }
 
+    // Cálculo unificado del estatus real en vivo para la auditoría (evita falsos perdedores si hay combos vivos)
+    function calcularEstatusRealTicket(t) {
+      var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
+      var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
+      if (subCombos.length === 0) return String(t.Estatus || t.estatus || "Pendiente");
+
+      var estatusNube = String(t.Estatus || t.estatus || "").trim().toLowerCase();
+      if (estatusNube.includes('pagad')) return "Pagado";
+      if (estatusNube.includes('ganador')) return "Ganador";
+
+      var hayAlgunaViva = false;
+      subCombos.forEach(function(combo) {
+        if (evaluarCombinacionViva(combo)) {
+          hayAlgunaViva = true;
+        }
+      });
+
+      if (hayAlgunaViva) {
+        return "Vivo / Pendiente";
+      } else {
+        return "Perdedor";
+      }
+    }
+
     function renderizarTicketsAudit(dataList) {
       var tbody = document.getElementById('tablaTicketsAuditBody');
       var vivos = 0, perdidos = 0, pagados = 0, maxRiesgo = 0;
@@ -1518,7 +1562,7 @@
       if (dataList && dataList.length > 0) {
         var html = '';
         dataList.forEach(function(t) {
-          var estatus = String(t.Estatus || t.estatus || "Pendiente").trim();
+          var estatus = calcularEstatusRealTicket(t);
           var seleccionStr = String(t.Seleccion6 || t.seleccion6 || "");
           
           var subCombos = seleccionStr ? seleccionStr.split('|').map(function(s) { return s.trim(); }) : [];
