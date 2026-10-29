@@ -390,7 +390,7 @@
       <!-- CÓMPUTO -->
       <div id="tabProcesar" class="tab-content">
         <div class="card">
-          <h3>Ingreso de Ganadores (Puestos por Valida)</h3>
+          <h3>Ingreso de Ganadores (Puestos por Válida)</h3>
           <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">Indique el número de los ejemplares ganadores y cuántos puestos fueron válidos para la carrera.</p>
           
           <div class="grid-2" id="contenedorValidasForm"></div>
@@ -413,7 +413,7 @@
           <h3>Registrar Ejemplar</h3>
           <div class="grid-3">
             <div class="form-group"><label>Hipódromo:</label><select id="nuevoHipodromo"><option value="La Rinconada">La Rinconada</option><option value="Valencia">Valencia</option></select></div>
-            <div class="form-group"><label>Valida / Carrera:</label><select id="nuevaValida"><option value="Valida 1">Valida 1</option><option value="Valida 2">Valida 2</option><option value="Valida 3">Valida 3</option><option value="Valida 4">Valida 4</option><option value="Valida 5">Valida 5</option><option value="Valida 6">Valida 6</option></select></div>
+            <div class="form-group"><label>Válida / Carrera:</label><select id="nuevaValida"><option value="Valida 1">Valida 1</option><option value="Valida 2">Valida 2</option><option value="Valida 3">Valida 3</option><option value="Valida 4">Valida 4</option><option value="Valida 5">Valida 5</option><option value="Valida 6">Valida 6</option></select></div>
             <div class="form-group"><label>N° Reunión:</label><input type="text" id="nuevaReunion" placeholder="Ej: 035"></div>
           </div>
           <div class="grid-4" style="margin-top: 10px;">
@@ -431,16 +431,16 @@
 
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3>Lista en Vivo por Validas</h3>
+            <h3>Lista en Vivo por Válidas</h3>
           </div>
 
           <div class="sub-tabs">
-            <button class="sub-tab-btn active" onclick="cambiarSubTabValida('Valida 1', this)">Valida 1</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 2', this)">Valida 2</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 3', this)">Valida 3</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 4', this)">Valida 4</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 5', this)">Valida 5</button>
-            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 6', this)">Valida 6</button>
+            <button class="sub-tab-btn active" onclick="cambiarSubTabValida('Valida 1', this)">Válida 1</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 2', this)">Válida 2</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 3', this)">Válida 3</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 4', this)">Válida 4</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 5', this)">Válida 5</button>
+            <button class="sub-tab-btn" onclick="cambiarSubTabValida('Valida 6', this)">Válida 6</button>
           </div>
 
           <div class="table-container">
@@ -802,21 +802,21 @@
       for(let i=1; i<=6; i++) {
         html += `
           <div class="valida-box">
-            <label style="color: var(--accent); font-weight: bold;">Valida ${i}</label>
+            <label style="color: var(--accent); font-weight: bold;">Válida ${i}</label>
             <div class="grid-3" style="margin-top: 6px;">
               <div><label style="font-size:0.7rem;">1° Lugar</label><input type="number" id="v${i}_1" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
               <div><label style="font-size:0.7rem;">2° Lugar</label><input type="number" id="v${i}_2" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
               <div><label style="font-size:0.7rem;">3° Lugar</label><input type="number" id="v${i}_3" min="1" placeholder="N°" oninput="guardarLocalmenteOptimizado()"></div>
             </div>
             <div style="margin-top: 8px;">
-              <label style="font-size:0.7rem;">Puestos Validos</label>
+              <label style="font-size:0.7rem;">Puestos Válidos</label>
               <select id="v${i}_puestos" onchange="guardarLocalmenteOptimizado()">
                 <option value="3">3 Puestos</option>
                 <option value="2">2 Puestos</option>
                 <option value="1">1 Puesto</option>
               </select>
             </div>
-            <button class="btn-valida-guardar" onclick="confirmarAccion('guardar_valida_${i}', '¿Desea guardar y procesar los resultados de la Valida ${i}?', function() { guardarValidaIndividual(${i}); })">💾 Guardar Valida ${i}</button>
+            <button class="btn-valida-guardar" onclick="confirmarAccion('guardar_valida_${i}', '¿Desea guardar y procesar los resultados de la Válida ${i}?', function() { guardarValidaIndividual(${i}); })">💾 Guardar Válida ${i}</button>
           </div>
         `;
       }
@@ -894,9 +894,9 @@
                   puestos: puestosValidos
                 };
 
-                if (c1 !== '' && document.getElementById('v' + idx + '_1') && !document.getElementById('v' + idx + '_1').value) document.getElementById('v' + idx + '_1').value = c1;
-                if (c2 !== '' && document.getElementById('v' + idx + '_2') && !document.getElementById('v' + idx + '_2').value) document.getElementById('v' + idx + '_2').value = c2;
-                if (c3 !== '' && document.getElementById('v' + idx + '_3') && !document.getElementById('v' + idx + '_3').value) document.getElementById('v' + idx + '_3').value = c3;
+                if (document.getElementById('v' + idx + '_1')) document.getElementById('v' + idx + '_1').value = c1;
+                if (document.getElementById('v' + idx + '_2')) document.getElementById('v' + idx + '_2').value = c2;
+                if (document.getElementById('v' + idx + '_3')) document.getElementById('v' + idx + '_3').value = c3;
                 if (puestosValidos !== '' && document.getElementById('v' + idx + '_puestos')) document.getElementById('v' + idx + '_puestos').value = puestosValidos;
               }
             }
@@ -1058,35 +1058,39 @@
     }
 
     function guardarValidaIndividual(numValida) {
-      var g1_val = document.getElementById('v' + numValida + '_1').value || "";
-      var g2_val = document.getElementById('v' + numValida + '_2').value || "";
+      var g1_val = document.getElementById('v' + numValida + '_1') ? document.getElementById('v' + numValida + '_1').value.trim() : "";
+      var g2_val = document.getElementById('v' + numValida + '_2') ? document.getElementById('v' + numValida + '_2').value.trim() : "";
       
       if (!g1_val && !g2_val) {
-        if (!confirm("Está guardando la Valida " + numValida + " vacía. ¿Desea continuar?")) {
+        if (!confirm("Está guardando la Válida " + numValida + " vacía. ¿Desea continuar?")) {
           return;
         }
       }
 
-      mostrarAlerta("Guardando Valida " + numValida + " y procesando...", "success", 0);
+      mostrarAlerta("Guardando Válida " + numValida + " y procesando...", "success", 0);
       guardarLocalmenteOptimizado();
 
       var payload = { action: 'guardarResultados', validaIndividual: numValida };
 
+      // Se envían explícitamente los campos vacíos de las válidas aún no disputadas para evitar pisotones
       for (var i = 1; i <= 6; i++) {
-        var v1 = document.getElementById('v' + i + '_1') ? document.getElementById('v' + i + '_1').value : '';
-        var v2 = document.getElementById('v' + i + '_2') ? document.getElementById('v' + i + '_2').value : '';
-        var v3 = document.getElementById('v' + i + '_3') ? document.getElementById('v' + i + '_3').value : '';
+        var v1 = document.getElementById('v' + i + '_1') ? document.getElementById('v' + i + '_1').value.trim() : '';
+        var v2 = document.getElementById('v' + i + '_2') ? document.getElementById('v' + i + '_2').value.trim() : '';
+        var v3 = document.getElementById('v' + i + '_3') ? document.getElementById('v' + i + '_3').value.trim() : '';
         var puestos = document.getElementById('v' + i + '_puestos') ? document.getElementById('v' + i + '_puestos').value : '3';
 
-        payload['v' + i] = v1 + "," + v2 + "," + v3;
+        if (!v1 && !v2 && !v3) {
+          payload['v' + i] = "";
+        } else {
+          payload['v' + i] = v1 + "," + v2 + "," + v3;
+        }
         payload['p' + i] = puestos;
       }
 
       enviarPeticion(payload, function(res) {
-        var msg = (res && res.message) ? res.message : ("¡Valida " + numValida + " guardada correctamente!");
+        var msg = (res && res.message) ? res.message : ("¡Válida " + numValida + " guardada correctamente!");
         mostrarAlerta(msg, "success", 4000);
         
-        // Secuencia sincronizada: primero actualizamos memoria de resultados y carreras, luego auditamos los tickets
         cargarResultadosGuardados(function() {
           sincronizarCarrerasAdmin(function() {
             cargarDatosCarreras();
