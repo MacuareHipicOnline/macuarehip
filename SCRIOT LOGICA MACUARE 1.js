@@ -1,7 +1,7 @@
 /**
  * CÓDIGO CONSOLIDADO, UNIFICADO Y OPTIMIZADO - SISTEMA MACUARE HÍPICO
  * Pestañas: Usuarios, Carreras, Tickets, Resultados, Caja_Vendedores, Historial_Metricas, Ajustes_Banca
- * Actualizado con Desglose Dinámico, Cálculo Real de Premios y Sincronización Inmediata de Estatus
+ * Actualizado con Desglose Dinámico, Cálculo Real de Premios y Sincronización Exacta de Estatus con el Admin
  */
 
 const COMISION_QUEDA = 0.30;
@@ -986,190 +986,146 @@ function verificarLogin(usuario, password) {
   return { success: false, message: "Usuario o contraseña incorrectos." };
 }
 
+// =========================================================================
+// LÓGICA UNIFICADA Y EXACTA DE EVALUACIÓN DE TICKETS (IGUAL QUE EL ADMIN)
+// =========================================================================
 function procesarResultadosYCalcularGanadores() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetResultados = ss.getSheetByName("Resultados");
   var sheetTickets = ss.getSheetByName("Tickets");
   var sheetCarreras = ss.getSheetByName("Carreras");
   
+  if (!sheetResultados || !sheetTickets || !sheetCarreras) return;
+
   var resultadosData = sheetResultados.getDataRange().getValues();
   var ticketsData = sheetTickets.getDataRange().getValues();
   var carrerasData = sheetCarreras.getDataRange().getValues();
   
-  var resultadosOficiales = {};
+  var mapaResultadosGlobal = {};
   var carrerasOficialesCorridas = {}; 
-  
-  var ventasPorCaballoPorValida = {};
-  for (var t = 1; t < ticketsData.length; t++) {
-    var estatusT = String(ticketsData[t][6]).trim().toLowerCase();
-    if (estatusT === "anulado") continue;
-    var selStr = String(ticketsData[t][3]).trim();
-    if (!selStr) continue;
-    var montoT = parseFloat(ticketsData[t][4]) || 0;
-    
-    var subJugadas = selStr.includes(" | ") ? selStr.split(" | ") : [selStr];
-    var montoPorSub = montoT / subJugadas.length;
-    
-    for (var sj = 0; sj < subJugadas.length; sj++) {
-      var item = subJugadas[sj].trim();
-      var combPart = item;
-      var montoSub = montoPorSub;
-      var matchSub = item.match(/(.*?)\s*\(Bs\s*([\d\.]+)\)/);
-      if (matchSub) {
-        combPart = matchSub[1].trim();
-        montoSub = parseFloat(matchSub[2]) || 0;
-      }
-      var hElegidos = combPart.split(" - ");
-      
-      for (var v = 0; v < 6; v++) {
-        var valKey = "Valida " + (v + 1);
-        var hNum = parseInt(hElegidos[v]);
-        if (!isNaN(hNum)) {
-          if (!ventasPorCaballoPorValida[valKey]) ventasPorCaballoPorValida[valKey] = {};
-          ventasPorCaballoPorValida[valKey][hNum] = (ventasPorCaballoPorValida[valKey][hNum] || 0) + montoSub;
-        }
-      }
-    }
-  }
 
-  var caballosRetirados = {};
-  var caballosActivosPorValida = {};
-  for (var c = 1; c < carrerasData.length; c++) {
-    var valCar = String(carrerasData[c][0]).trim();
-    var numCar = parseInt(carrerasData[c][1]);
-    var estCar = String(carrerasData[c][3]).trim().toLowerCase();
-    if (valCar && !isNaN(numCar)) {
-      if (estCar === "retirado") {
-        if (!caballosRetirados[valCar]) caballosRetirados[valCar] = {};
-        caballosRetirados[valCar][numCar] = true;
-      } else {
-        if (!caballosActivosPorValida[valCar]) caballosActivosPorValida[valCar] = [];
-        caballosActivosPorValida[valCar].push(numCar);
-      }
-    }
-  }
-
-  var favoritosPorValida = {};
-  for (var valKey in caballosActivosPorValida) {
-    var activos = caballosActivosPorValida[valKey];
-    if (activos.length === 0) continue;
-    var ventasH = ventasPorCaballoPorValida[valKey] || {};
-    var maxVentas = -1;
-    var mejorCaballo = activos[0];
-    for (var i = 0; i < activos.length; i++) {
-      var hNum = activos[i];
-      var vAcum = ventasH[hNum] || 0;
-      if (vAcum > maxVentas) {
-        maxVentas = vAcum;
-        mejorCaballo = hNum;
-      }
-    }
-    favoritosPorValida[valKey] = mejorCaballo;
-  }
-  
+  // 1. Cargar resultados oficiales de forma robusta por número de válida
   for (var r = 1; r < resultadosData.length; r++) {
     if (resultadosData[r][0]) {
-      var valName = resultadosData[r][0]; 
-      var ganadoresVal = [];
-      var cuantosPuestos = parseInt(resultadosData[r][4]) || 3;
-      
-      var tieneGanadorReal = (resultadosData[r][1] !== "" && resultadosData[r][1] !== null && resultadosData[r][1] !== undefined);
-      
-      if (tieneGanadorReal) {
-        for (var col = 1; col <= cuantosPuestos; col++) {
-          if (resultadosData[r][col] !== "" && resultadosData[r][col] !== null && resultadosData[r][col] !== undefined) {
-            ganadoresVal.push(parseInt(resultadosData[r][col]));
-          }
-        }
-        resultadosOficiales[valName] = ganadoresVal;
-        carrerasOficialesCorridas[valName] = true;
-      } else {
-        carrerasOficialesCorridas[valName] = false;
-      }
-      
-      for (var c = 1; c < carrerasData.length; c++) {
-        if (String(carrerasData[c][0]).trim() === valName) {
-          if (String(carrerasData[c][3]).trim().toLowerCase() !== "retirado") {
-            var numCarrera = parseInt(carrerasData[c][1]);
-            if (tieneGanadorReal) {
-              sheetCarreras.getRange(c + 1, 4).setValue(ganadoresVal.indexOf(numCarrera) !== -1 ? "GANO" : "CORRIO");
-            } else {
-              sheetCarreras.getRange(c + 1, 4).setValue("PENDIENTE");
-            }
+      var nombreValida = String(resultadosData[r][0]).trim();
+      var match = nombreValida.match(/(\d+)/);
+      if (match) {
+        var idx = parseInt(match[1]);
+        if (idx >= 1 && idx <= 6) {
+          var c1 = String(resultadosData[r][1] || "").trim();
+          var c2 = String(resultadosData[r][2] || "").trim();
+          var c3 = String(resultadosData[r][3] || "").trim();
+          var puestosValidos = parseInt(resultadosData[r][4] || '3') || 3;
+
+          var ganadoresArr = [c1, c2, c3].filter(function(c) { return c !== ""; });
+          if (ganadoresArr.length > 0) {
+            mapaResultadosGlobal[idx] = {
+              ganadores: ganadoresArr,
+              puestos: puestosValidos
+            };
+            carrerasOficialesCorridas[idx] = true;
+          } else {
+            carrerasOficialesCorridas[idx] = false;
           }
         }
       }
     }
   }
-  
+
+  // 2. Mapear caballos retirados por válida
+  var caballosRetirados = {};
+  for (var c = 1; c < carrerasData.length; c++) {
+    var valCar = String(carrerasData[c][0]).trim();
+    var matchV = valCar.match(/(\d+)/);
+    var numCar = parseInt(carrerasData[c][1]);
+    var estCar = String(carrerasData[c][3]).trim().toLowerCase();
+    
+    if (matchV && !isNaN(numCar)) {
+      var idxVal = parseInt(matchV[1]);
+      if (estCar === "retirado") {
+        if (!caballosRetirados[idxVal]) caballosRetirados[idxVal] = {};
+        caballosRetirados[idxVal][numCar] = true;
+      }
+    }
+  }
+
+  // Función interna idéntica a la del Admin para evaluar si una sub-combinación sigue viva
+  function evaluarCombinacionVivaBackend(subComboStr) {
+    var partesLimpias = subComboStr.split('(')[0];
+    var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
+
+    for (var validaIdx = 1; validaIdx <= 6; validaIdx++) {
+      var resultadoInfo = mapaResultadosGlobal[validaIdx];
+      if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
+        var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
+        if (caballoJugadoOriginal) {
+          var numJugado = parseInt(caballoJugadoOriginal);
+          
+          // Regla de arrastre por ejemplar retirado
+          var efectivoNum = numJugado;
+          var maxIter = 30;
+          while (maxIter > 0 && caballosRetirados[validaIdx] && caballosRetirados[validaIdx][efectivoNum]) {
+            efectivoNum++;
+            maxIter--;
+          }
+          var caballoEfectivo = String(efectivoNum);
+
+          var puestosPermitidos = resultadoInfo.puestos;
+          var ganadoresValidos = resultadoInfo.ganadores.slice(0, puestosPermitidos);
+          if (ganadoresValidos.indexOf(caballoEfectivo) === -1) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  // 3. Evaluar cada ticket y actualizar la hoja exactamente como el Admin
   for (var t = 1; t < ticketsData.length; t++) {
-    var estatusActual = String(ticketsData[t][6]).trim();
-    if (estatusActual === "Pagado" || estatusActual === "Anulado") continue; 
+    var estatusActual = String(ticketsData[t][6]).trim().toLowerCase();
+    if (estatusActual === "pagado" || estatusActual === "anulado") continue; 
     
     var seleccionStr = String(ticketsData[t][3]).trim();
     if (!seleccionStr) continue;
     
-    var subJugadas = seleccionStr.includes(" | ") ? seleccionStr.split(" | ") : [seleccionStr];
-    var subJugadasResultados = [];
-    
-    for (var sj = 0; sj < subJugadas.length; sj++) {
-      var item = subJugadas[sj].trim();
-      var combPart = item;
-      var matchSub = item.match(/(.*?)\s*\(Bs\s*([\d\.]+)\)/);
-      if (matchSub) {
-        combPart = matchSub[1].trim();
-      }
-      var caballosElegidos = combPart.split(" - ");
-      
-      var subPerdido = false;
-      var subTodasCorrieronYAcertadas = true;
-      
-      for (var v = 0; v < 6; v++) {
-        var validaKey = "Valida " + (v + 1);
-        var seleccionCaballo = parseInt(caballosElegidos[v]);
-        
-        if (caballosRetirados[validaKey] && caballosRetirados[validaKey][seleccionCaballo]) {
-          var favoritoValida = favoritosPorValida[validaKey];
-          if (favoritoValida !== undefined) {
-            seleccionCaballo = favoritoValida;
-          }
-        }
-        
-        if (carrerasOficialesCorridas[validaKey]) {
-          var ganadoresValida = resultadosOficiales[validaKey] || [];
-          if (ganadoresValida.indexOf(seleccionCaballo) === -1) {
-            subPerdido = true;
-            break; 
-          }
-        } else {
-          subTodasCorrieronYAcertadas = false;
+    var subCombos = seleccionStr.includes(" | ") ? seleccionStr.split(" | ") : [seleccionStr];
+    var subJugadasVivasCount = 0;
+    var subJugadasGanadorasCount = 0;
+    var todasLasCarrerasCorridas = true;
+
+    for (var sj = 0; sj < subCombos.length; sj++) {
+      var combo = subCombos[sj].trim();
+      var estaViva = evaluarCombinacionVivaBackend(combo);
+
+      // Verificar si todas las 6 válidas tienen resultados oficiales
+      var todasValidasOficiales = true;
+      for (var vIdx = 1; vIdx <= 6; vIdx++) {
+        if (!carrerasOficialesCorridas[vIdx]) {
+          todasValidasOficiales = false;
+          break;
         }
       }
-      
-      if (subPerdido) {
-        subJugadasResultados.push("Perdedor");
-      } else if (subTodasCorrieronYAcertadas) {
-        subJugadasResultados.push("Ganador");
-      } else {
-        subJugadasResultados.push("Pendiente");
+
+      if (estaViva) {
+        subJugadasVivasCount++;
+        if (todasValidasOficiales) {
+          subJugadasGanadorasCount++;
+        }
       }
     }
-    
-    var todasPerdidas = subJugadasResultados.every(function(st) { return st === "Perdedor"; });
-    var algunaGanadora = subJugadasResultados.some(function(st) { return st === "Ganador"; });
-    var algunaPendiente = subJugadasResultados.some(function(st) { return st === "Pendiente"; });
-    
+
     var celdaEstatusTicket = sheetTickets.getRange(t + 1, 7);
-    if (todasPerdidas) {
+
+    if (subJugadasVivasCount === 0) {
       celdaEstatusTicket.setValue("Perdedor");
-    } else if (algunaPendiente) {
-      celdaEstatusTicket.setValue("Pendiente");
-    } else if (algunaGanadora) {
+    } else if (subJugadasGanadorasCount > 0) {
       celdaEstatusTicket.setValue("Ganador");
     } else {
       celdaEstatusTicket.setValue("Pendiente");
     }
   }
+  
   recalcularCajasVendedores();
 }
 
