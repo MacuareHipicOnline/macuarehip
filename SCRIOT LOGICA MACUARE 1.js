@@ -1176,6 +1176,19 @@ function recalcularCajasVendedores() {
   var carrerasData = sheetCarreras ? sheetCarreras.getDataRange().getValues() : [];
   var resultadosData = sheetResultados ? sheetResultados.getDataRange().getValues() : [];
   
+  // PRESERVAR ESTADOS Y PREMIOS ANTERIORES REPORTADOS (PARA NO PERDER DATOS DE CUADRE)
+  var estadosPrevios = {};
+  for (var c = 1; c < cajaData.length; c++) {
+    var taqKey = String(cajaData[c][0]).trim().toLowerCase();
+    if (taqKey) {
+      estadosPrevios[taqKey] = {
+        premiosReportados: parseFloat(cajaData[c][2]) || 0,
+        referencia: cajaData[c][6] || "",
+        estatus: cajaData[c][7] || "PENDIENTE"
+      };
+    }
+  }
+  
   var resultadosOficiales = {};
   var carrerasOficialesCorridas = {};
   for (var r = 1; r < resultadosData.length; r++) {
@@ -1262,17 +1275,6 @@ function recalcularCajasVendedores() {
     favoritosPorValida[valKey] = mejorCaballo;
   }
   
-  var estadosPrevios = {};
-  for (var c = 1; c < cajaData.length; c++) {
-    var taqKey = String(cajaData[c][0]).trim().toLowerCase();
-    if (taqKey) {
-      estadosPrevios[taqKey] = {
-        referencia: cajaData[c][6] || "",
-        estatus: cajaData[c][7] || "PENDIENTE"
-      };
-    }
-  }
-  
   if (cajaData.length > 1) {
     sheetCaja.getRange(2, 1, cajaData.length - 1, sheetCaja.getLastColumn()).clearContent();
   }
@@ -1338,14 +1340,20 @@ function recalcularCajasVendedores() {
   var filasAEscribir = [];
   for (var v in resumenVendedores) {
     var totalVentas = resumenVendedores[v].ventas;
-    var totalPremios = resumenVendedores[v].premiosPagados;
+    var calcPremios = resumenVendedores[v].premiosPagados;
+    
+    var vKeyNormalized = String(v).trim().toLowerCase();
+    var preReportados = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].premiosReportados) ? estadosPrevios[vKeyNormalized].premiosReportados : 0;
+    
+    // Tomar el mayor entre lo calculado oficialmente y lo reportado/calculado por el vendedor para no perder datos de premios
+    var totalPremios = Math.max(calcPremios, preReportados);
+    
     var laQueda = totalVentas - totalPremios;
     if (laQueda < 0) laQueda = 0; // Si premios superan ventas, la queda es 0
     
     var comision = laQueda > 0 ? laQueda * COMISION_QUEDA : 0;
     var netoEntregar = laQueda > 0 ? laQueda * 0.70 : totalVentas; // Si premios superan ventas, entrega el 100% de la venta
     
-    var vKeyNormalized = String(v).trim().toLowerCase();
     var refAnterior = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].referencia) ? estadosPrevios[vKeyNormalized].referencia : "";
     var estAnterior = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].estatus) ? estadosPrevios[vKeyNormalized].estatus : "PENDIENTE";
     
