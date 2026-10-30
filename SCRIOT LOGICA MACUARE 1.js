@@ -1,7 +1,7 @@
 /**
  * CÓDIGO CONSOLIDADO, UNIFICADO Y OPTIMIZADO - SISTEMA MACUARE HÍPICO
  * Pestañas: Usuarios, Carreras, Tickets, Resultados, Caja_Vendedores, Historial_Metricas, Ajustes_Banca
- * Actualizado con Desglose Dinámico, Cálculo Real de Premios y Sincronización Exacta de Estatus con el Admin
+ * Actualizado con Balance Real Negativo en Caso de Pérdida (Premios > Ventas)
  */
 
 const COMISION_QUEDA = 0.30;
@@ -235,11 +235,23 @@ function registrarMetrica(params) {
     }
     
     var taquilla = params.taquilla || "";
-    var ventas = params.ventas || 0;
-    var premios = params.premios || 0;
-    var laQueda = params.laQueda || 0;
-    var comision = params.comision || 0;
-    var neto = params.neto || 0;
+    var ventas = parseFloat(params.ventas) || 0;
+    var premios = parseFloat(params.premios) || 0;
+    
+    // CALCULO DE BALANCE REAL DE BANCA:
+    var laQueda = ventas - premios;
+    var comision = 0;
+    var neto = 0;
+    
+    if (laQueda < 0) {
+      // Si Premios > Ventas: La queda es negativa y el Neto a entregar es el saldo negativo total
+      comision = 0;
+      neto = laQueda; 
+    } else {
+      comision = laQueda * COMISION_QUEDA;
+      neto = laQueda - comision;
+    }
+    
     var referencia = params.referencia || "";
     var estatus = params.estatus || "PENDIENTE";
     
@@ -1176,7 +1188,7 @@ function recalcularCajasVendedores() {
   var carrerasData = sheetCarreras ? sheetCarreras.getDataRange().getValues() : [];
   var resultadosData = sheetResultados ? sheetResultados.getDataRange().getValues() : [];
   
-  // PRESERVAR ESTADOS Y PREMIOS ANTERIORES REPORTADOS (PARA NO PERDER DATOS DE CUADRE)
+  // PRESERVAR ESTADOS Y PREMIOS ANTERIORES REPORTADOS
   var estadosPrevios = {};
   for (var c = 1; c < cajaData.length; c++) {
     var taqKey = String(cajaData[c][0]).trim().toLowerCase();
@@ -1345,14 +1357,22 @@ function recalcularCajasVendedores() {
     var vKeyNormalized = String(v).trim().toLowerCase();
     var preReportados = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].premiosReportados) ? estadosPrevios[vKeyNormalized].premiosReportados : 0;
     
-    // Tomar el mayor entre lo calculado oficialmente y lo reportado/calculado por el vendedor para no perder datos de premios
     var totalPremios = Math.max(calcPremios, preReportados);
     
+    // BALANCE REAL:
     var laQueda = totalVentas - totalPremios;
-    if (laQueda < 0) laQueda = 0; // Si premios superan ventas, la queda es 0
+    var comision = 0;
+    var netoEntregar = 0;
     
-    var comision = laQueda > 0 ? laQueda * COMISION_QUEDA : 0;
-    var netoEntregar = laQueda > 0 ? laQueda * 0.70 : totalVentas; // Si premios superan ventas, entrega el 100% de la venta
+    if (laQueda < 0) {
+      // Pérdida para la Banca (Premios > Ventas)
+      comision = 0;
+      netoEntregar = laQueda; // Refleja el saldo negativo exacto
+    } else {
+      // Ganancia para la Banca
+      comision = laQueda * COMISION_QUEDA;
+      netoEntregar = laQueda - comision;
+    }
     
     var refAnterior = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].referencia) ? estadosPrevios[vKeyNormalized].referencia : "";
     var estAnterior = (estadosPrevios[vKeyNormalized] && estadosPrevios[vKeyNormalized].estatus) ? estadosPrevios[vKeyNormalized].estatus : "PENDIENTE";
