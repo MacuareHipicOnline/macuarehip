@@ -300,7 +300,6 @@
             box-shadow: 0 2px 5px rgba(35, 82, 36, 0.3);
             transform: scale(1.05);
         }
-        /* Estilos añadidos para ejemplares retirados y cupo de inscritos */
         .num-btn.retirado {
             background-color: #fadbd8 !important;
             color: #c0392b !important;
@@ -376,7 +375,6 @@
             background-color: rgba(197, 155, 39, 0.3) !important;
         }
 
-        /* Insignias de Estatus Estilizadas */
         .badge-estatus {
             padding: 5px 10px;
             border-radius: 20px;
@@ -596,7 +594,6 @@
             cargarResultadosGlobalesAdmin();
             sincronizarCarrerasYConstruirSelectores();
 
-            // Actualización automática cada 10 segundos si el usuario ya inició sesión
             setInterval(() => {
                 const userActivo = localStorage.getItem("usuarioMacuareVendedor");
                 if (userActivo) {
@@ -686,28 +683,50 @@
                 });
         }
 
+        // ==========================================
+        // LOGIN SEGURO VALIDADO CONTRA LA HOJA USUARIOS
+        // ==========================================
         function intentarLogin(e) {
             e.preventDefault();
-            let user = document.getElementById("loginUsuario").value.trim().toUpperCase();
+            let user = document.getElementById("loginUsuario").value.trim();
             let pass = document.getElementById("loginPassword").value.trim();
             let errorDiv = document.getElementById("loginError");
 
-            if (user === "ADMIN") {
-                errorDiv.innerText = "Esta cuenta es de administrador. Use admin.html";
+            if (!user || !pass) {
+                errorDiv.innerText = "Por favor ingrese usuario y contraseña.";
                 errorDiv.style.display = "block";
                 return;
             }
 
-            if (user.length > 0 && pass.length > 0) {
-                localStorage.setItem("usuarioMacuareVendedor", user);
-                document.getElementById("loginOverlay").style.display = "none";
-                document.getElementById("labelVendedor").innerText = "Vendedor: " + user;
-                consultarCajaVendedor(user);
-                cargarControlInternoLocal();
-            } else {
-                errorDiv.innerText = "Por favor ingrese usuario y contraseña.";
-                errorDiv.style.display = "block";
-            }
+            let urlLogin = `${URL_WEB_APP}?action=login&usuario=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+
+            fetch(urlLogin)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        let rol = String(data.rol || "").trim().toUpperCase();
+                        if (rol === "ADMIN") {
+                            errorDiv.innerText = "Esta cuenta es de Administrador. Use el panel de Admin.";
+                            errorDiv.style.display = "block";
+                            return;
+                        }
+
+                        let usuarioValido = String(data.usuario || user).trim().toUpperCase();
+                        localStorage.setItem("usuarioMacuareVendedor", usuarioValido);
+                        document.getElementById("loginOverlay").style.display = "none";
+                        document.getElementById("labelVendedor").innerText = "Vendedor: " + usuarioValido;
+                        consultarCajaVendedor(usuarioValido);
+                        cargarControlInternoLocal();
+                    } else {
+                        errorDiv.innerText = data.message || "Usuario o contraseña incorrectos.";
+                        errorDiv.style.display = "block";
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    errorDiv.innerText = "Error de conexión al validar usuario.";
+                    errorDiv.style.display = "block";
+                });
         }
 
         function cerrarSesion() {
@@ -799,7 +818,6 @@
             <h2 style="margin-top: 25px;">2. Seleccionar Combinaciones al Mismo Ticket</h2>
             <p style="font-size: 13px; color: #5c6b5e; margin-bottom: 15px; font-weight: 500;">Haga clic en el número de cada ejemplar por válida. Agregue tantas jugadas como desee para este cliente.</p>
 
-            <!-- Contenedor dinámico de botones de Válidas -->
             <div id="contenedorSelectoresValidas"></div>
             
             <div class="form-grid" style="margin-top: 15px;">
@@ -963,7 +981,6 @@
         </div>
     </div>
 
-    <!-- POPUP / MODAL DE REGLAS AMIGABLE Y ANIMADO -->
     <div class="modal-overlay" id="modalReglas">
         <div class="modal-content" style="max-width: 480px;">
             <h3>🐎 Guía y Reglas del Macuare Hípico</h3>
@@ -1117,7 +1134,6 @@
             setTimeout(() => m.style.display = 'none', 300);
         }
 
-        // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
         function obtenerNumeroRealConArrastreVendedor(validaIdx, numeroJugado) {
             let inscritos = mapaCarrerasInscritos[validaIdx] || [];
             let numActual = parseInt(numeroJugado);
@@ -1647,16 +1663,12 @@
             tbodyTickets.innerHTML = htmlTickets;
         }
 
-        // ==========================================
-        // REGLA DE ORO ACTUALIZADA PARA LA CAJA Y CUADRE
-        // ==========================================
         function renderizarCajaUI(miCaja) {
             if (!miCaja) miCaja = { ventas: 0, premios: 0, laQueda: 0, comision: 0 };
             datosCajaActual = miCaja;
             
             let ventas = Number(miCaja.ventas !== undefined ? miCaja.ventas : (miCaja.Ventas !== undefined ? miCaja.Ventas : 0));
             
-            // Cálculo dinámico de premios basado en los tickets ganadores reales de la taquilla si el backend manda 0
             let premiosNube = Number(miCaja.premios !== undefined ? miCaja.premios : (miCaja.Premios !== undefined ? miCaja.Premios : 0));
             let premiosCalculadosLocal = 0;
 
@@ -1696,7 +1708,6 @@
             txtPremiosEl.innerText = "Bs " + premios.toLocaleString('es-VE', {minimumFractionDigits: 2});
 
             if (premios > ventas) {
-                // REGLA DE ORO 1: Si los premios son mayores a las ventas, se envía completo el dinero de las ventas
                 laQueda = -premios;
                 comision = 0;
                 enviarBanca = ventas; 
@@ -1706,7 +1717,6 @@
                 txtGananciaEl.innerText = "Bs 0.00 (Premios > Ventas)";
                 txtEnviarBancaEl.className = "text-red";
             } else {
-                // REGLA DE ORO 2: Si las ventas superan a los premios, el vendedor se queda con el 30% de la queda
                 comision = laQueda * 0.30;
                 enviarBanca = laQueda - comision;
                 montoModalFinal = enviarBanca;
@@ -1793,9 +1803,6 @@
             }).catch(err => console.error('Error al copiar: ', err));
         }
 
-        // ==========================================
-        // FUNCIÓN CORREGIDA Y UNIFICADA CON PREMIOS REALES
-        // ==========================================
         function enviarPagoRealizado() {
             let referencia = document.getElementById("refPagoBanca").value.trim();
             if (!referencia) {
@@ -1805,7 +1812,6 @@
 
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
             
-            // Tomamos los valores exactos calculados en pantalla (incluyendo premios reales)
             let ventas = Number(datosCajaActual.ventas !== undefined ? datosCajaActual.ventas : (datosCajaActual.Ventas !== undefined ? datosCajaActual.Ventas : 0));
             
             let premiosNube = Number(datosCajaActual.premios !== undefined ? datosCajaActual.premios : (datosCajaActual.Premios !== undefined ? datosCajaActual.Premios : 0));
