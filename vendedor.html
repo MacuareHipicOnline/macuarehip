@@ -1793,6 +1793,9 @@
             }).catch(err => console.error('Error al copiar: ', err));
         }
 
+        // ==========================================
+        // FUNCIÓN CORREGIDA Y UNIFICADA CON PREMIOS REALES
+        // ==========================================
         function enviarPagoRealizado() {
             let referencia = document.getElementById("refPagoBanca").value.trim();
             if (!referencia) {
@@ -1801,11 +1804,47 @@
             }
 
             let vendedorId = localStorage.getItem("usuarioMacuareVendedor") || "Taquilla 01";
-            let ventas = datosCajaActual.ventas || datosCajaActual.Ventas || 0;
-            let premios = datosCajaActual.premios || datosCajaActual.Premios || 0;
-            let laQueda = datosCajaActual.laQueda || datosCajaActual.LaQueda || 0;
-            let comision = datosCajaActual.comision || datosCajaActual.Comision || 0;
-            let neto = laQueda - comision;
+            
+            // Tomamos los valores exactos calculados en pantalla (incluyendo premios reales)
+            let ventas = Number(datosCajaActual.ventas !== undefined ? datosCajaActual.ventas : (datosCajaActual.Ventas !== undefined ? datosCajaActual.Ventas : 0));
+            
+            let premiosNube = Number(datosCajaActual.premios !== undefined ? datosCajaActual.premios : (datosCajaActual.Premios !== undefined ? datosCajaActual.Premios : 0));
+            let premiosCalculadosLocal = 0;
+
+            misTicketsGlobalesCache.forEach(t => {
+                let estatus = String(t.Estatus || t.estatus || '').trim().toLowerCase();
+                if (estatus.includes('ganad') || estatus.includes('pagad')) {
+                    let seleccion = t.Seleccion6 || t.Combinacion || '';
+                    let partesSub = seleccion.split(" | ");
+                    let sumaG = 0;
+                    partesSub.forEach(sub => {
+                        if (evaluarCombinacionViva(sub)) {
+                            let matchM = sub.match(/\(Bs\s*([\d\.,]+)\)/i) || sub.match(/\(([\d\.,]+)\)/);
+                            if (matchM) {
+                                sumaG += parseFloat(matchM[1].replace(/\./g, '').replace(',', '.')) || 0;
+                            }
+                        }
+                    });
+                    let montoT = Number(t.Monto || t.monto || 0);
+                    premiosCalculadosLocal += (sumaG > 0 ? sumaG * 10 : montoT * 10);
+                }
+            });
+
+            let premios = Math.max(premiosNube, premiosCalculadosLocal);
+            
+            let laQueda = 0;
+            let comision = 0;
+            let neto = 0;
+
+            if (premios > ventas) {
+                laQueda = -premios;
+                comision = 0;
+                neto = ventas;
+            } else {
+                laQueda = ventas - premios;
+                comision = laQueda * 0.30;
+                neto = laQueda - comision;
+            }
 
             let url = `${URL_WEB_APP}?action=registrarMetrica&taquilla=${encodeURIComponent(vendedorId)}&ventas=${ventas}&premios=${premios}&laQueda=${laQueda}&comision=${comision}&neto=${neto}&referencia=${encodeURIComponent(referencia)}&estatus=PENDIENTE`;
 
@@ -1816,6 +1855,7 @@
                         alert("¡Pago reportado con éxito a la administración!");
                         document.getElementById("refPagoBanca").value = "";
                         cerrarModalCuadre();
+                        consultarCajaVendedor(vendedorId);
                     } else {
                         alert("Error al reportar pago: " + (data.mensaje || "Desconocido"));
                     }
