@@ -777,29 +777,30 @@
       });
     }
 
-    // Regla Hípica Actualizada: Siguiente número hábil con vuelta circular al #1 si llega al límite
+    // Regla Hípica Corregida: Arrastre exacto al límite real de la carrera y vuelta circular al #1
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
-      if (isNaN(numActual)) return numeroJugado;
+      if (isNaN(numActual) || inscritos.length === 0) return String(numeroJugado);
 
-      let maxCaballos = 14;
-      if (inscritos.length > 0) {
-        let nums = inscritos.map(c => parseInt(c.numero) || 0);
-        maxCaballos = Math.max(14, ...nums);
-      }
+      // Obtener el número de caballo más alto realmente inscrito en esta válida
+      let nums = inscritos.map(c => parseInt(c.numero) || 0).filter(n => n > 0);
+      let maxCaballos = nums.length > 0 ? Math.max(...nums) : 11;
 
-      let maxIter = 30; // Seguridad para evitar bucles infinitos
+      let maxIter = 30; // Evita bucles infinitos
       while (maxIter > 0) {
         let caballoInfo = inscritos.find(c => parseInt(c.numero) === numActual);
-        let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
+        
+        // Si el caballo está retirado O si es un número que no existe en la carrera
+        let esRetirado = !caballoInfo || (caballoInfo.estado && caballoInfo.estado.toLowerCase().includes("retirado"));
+
         if (esRetirado) {
           numActual++;
           if (numActual > maxCaballos) {
-            numActual = 1; // Vuelta circular al número 1
+            numActual = 1; // Vuelta circular inmediata al número 1
           }
         } else {
-          break;
+          break; // Encontró un caballo activo y válido
         }
         maxIter--;
       }
