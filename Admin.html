@@ -777,11 +777,17 @@
       });
     }
 
-    // Regla Hípica: Si el caballo seleccionado está retirado, corre con el siguiente número hábil
+    // Regla Hípica Actualizada: Siguiente puesto hábil con vuelta circular al #1 si llega al límite
     function obtenerNumeroRealConArrastre(validaIdx, numeroJugado) {
       let inscritos = mapaCarrerasInscritosAdmin[validaIdx] || [];
       let numActual = parseInt(numeroJugado);
       if (isNaN(numActual)) return numeroJugado;
+
+      let maxCaballos = 14;
+      if (inscritos.length > 0) {
+        let nums = inscritos.map(c => parseInt(c.numero) || 0);
+        maxCaballos = Math.max(14, ...nums);
+      }
 
       let maxIter = 30; // Seguridad para evitar bucles infinitos
       while (maxIter > 0) {
@@ -789,6 +795,9 @@
         let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
         if (esRetirado) {
           numActual++;
+          if (numActual > maxCaballos) {
+            numActual = 1; // Vuelta circular al número 1
+          }
         } else {
           break;
         }
@@ -1072,7 +1081,6 @@
 
       var payload = { action: 'guardarResultados', validaIndividual: numValida };
 
-      // Se envían explícitamente los campos vacíos de las válidas aún no disputadas para evitar pisotones
       for (var i = 1; i <= 6; i++) {
         var v1 = document.getElementById('v' + i + '_1') ? document.getElementById('v' + i + '_1').value.trim() : '';
         var v2 = document.getElementById('v' + i + '_2') ? document.getElementById('v' + i + '_2').value.trim() : '';
@@ -1506,7 +1514,7 @@
       }, 200);
     }
 
-    // Evaluación con aplicación de la regla de arrastre al siguiente número hábil si el original está retirado
+    // Evaluación con aplicación de la regla de arrastre circular al #1 si el original está retirado
     function evaluarCombinacionViva(subComboStr) {
       var partesLimpias = subComboStr.split('(')[0];
       var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1516,7 +1524,7 @@
         if (resultadoInfo && resultadoInfo.ganadores && resultadoInfo.ganadores.length > 0) {
           var caballoJugadoOriginal = caballosElegidos[validaIdx - 1];
           if (caballoJugadoOriginal) {
-            // Aplicar la regla: si está retirado, corre con el siguiente número hábil
+            // Aplicar la regla de arrastre con vuelta circular al #1
             var caballoEfectivo = obtenerNumeroRealConArrastre(validaIdx, caballoJugadoOriginal);
 
             var puestosPermitidos = resultadoInfo.puestos;
@@ -1622,8 +1630,8 @@
           res.data.forEach(u => {
             var badgeEst = u.estado === 'Suspendido' ? '<span class="badge-retirado">Susp.</span>' : '<span class="badge-activo">Activo</span>';
             var btnSuspenderActivar = u.estado === 'Suspendido' 
-              ? '<button style="background:#2e7d32; padding:4px 8px; font-size:0.75rem; width:auto; margin:0;" onclick="confirmarAccion(\'activar\', \'¿Activar usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Activo\'); })">Activar</button>'
-              : '<button class="btn-danger" onclick="confirmarAccion(\'suspender\', \'¿Suspender usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + '\', \'Suspendido\'); })">Susp.</button>';
+              ? '<button style="background:#2e7d32; padding:4px 8px; font-size:0.75rem; width:auto; margin:0;" onclick="confirmarAccion(\'activar\', \'¿Activar usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + \', \'Activo\'); })">Activar</button>'
+              : '<button class="btn-danger" onclick="confirmarAccion(\'suspender\', \'¿Suspender usuario?\', function() { cambiarEstadoUsuario(\'' + u.id + \', \'Suspendido\'); })">Susp.</button>';
             var btnEditar = '<button class="btn-accent" style="padding:4px 8px; font-size:0.75rem; width:auto; margin:0 4px 0 0;" onclick="prepararEdicionUsuario(\'' + u.id + '\', \'' + u.usuario + '\', \'' + u.password + '\', \'' + u.rol + '\', \'' + u.estado + '\')">Edit</button>';
 
             html += '<tr><td><b>' + u.id + '</b></td><td>' + u.usuario + '</td><td>' + u.password + '</td><td>' + u.rol + '</td><td>' + badgeEst + '</td><td>' + btnEditar + btnSuspenderActivar + '</td></tr>';
