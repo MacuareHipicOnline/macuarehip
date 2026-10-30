@@ -1,7 +1,7 @@
 /**
  * CÓDIGO CONSOLIDADO, UNIFICADO Y OPTIMIZADO - SISTEMA MACUARE HÍPICO
  * Pestañas: Usuarios, Carreras, Tickets, Resultados, Caja_Vendedores, Historial_Metricas, Ajustes_Banca
- * Actualizado con Balance Real Negativo en Caso de Pérdida (Premios > Ventas)
+ * Actualizado con Balance Real Negativo en Caso de Pérdida y Arrastre Circular de Retirados (Vuelta al #1)
  */
 
 const COMISION_QUEDA = 0.30;
@@ -238,13 +238,11 @@ function registrarMetrica(params) {
     var ventas = parseFloat(params.ventas) || 0;
     var premios = parseFloat(params.premios) || 0;
     
-    // CALCULO DE BALANCE REAL DE BANCA:
     var laQueda = ventas - premios;
     var comision = 0;
     var neto = 0;
     
     if (laQueda < 0) {
-      // Si Premios > Ventas: La queda es negativa y el Neto a entregar es el saldo negativo total
       comision = 0;
       neto = laQueda; 
     } else {
@@ -537,7 +535,6 @@ function doGet(e) {
     var lastRow = sheet.getLastRow();
     var listTickets = [];
     
-    // Precargar datos oficiales y carreras para calcular el premio real dinámico por sub-jugada
     var resultadosData = sheetRes ? sheetRes.getDataRange().getValues() : [];
     var carrerasData = sheetCar ? sheetCar.getDataRange().getValues() : [];
     
@@ -599,7 +596,6 @@ function doGet(e) {
         if (row[0] || row[1]) {
           var seleccionStr = String(row[3]).trim();
           var montoTotal = parseFloat(row[4]) || 0;
-          var estatusTicket = String(row[6]).trim();
           
           var premioPotencialGuardado = parseFloat(row[5]) || (montoTotal * MULTIPLICADOR_PREMIO);
           var premioRealCalculado = 0;
@@ -663,7 +659,6 @@ function doGet(e) {
               premioPotencialFormateado = "Bs 0,00 (Pot. Bs " + premioPotencialGuardado.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ")";
             }
           } else {
-            // Ticket simple
             var subGanadoraSimple = true;
             var subCorrioSimple = true;
             var combPart = seleccionStr;
@@ -1016,7 +1011,6 @@ function procesarResultadosYCalcularGanadores() {
   var mapaResultadosGlobal = {};
   var carrerasOficialesCorridas = {}; 
 
-  // 1. Cargar resultados oficiales de forma robusta por número de válida
   for (var r = 1; r < resultadosData.length; r++) {
     if (resultadosData[r][0]) {
       var nombreValida = String(resultadosData[r][0]).trim();
@@ -1044,8 +1038,8 @@ function procesarResultadosYCalcularGanadores() {
     }
   }
 
-  // 2. Mapear caballos retirados por válida
   var caballosRetirados = {};
+  var caballosActivosPorValida = {};
   for (var c = 1; c < carrerasData.length; c++) {
     var valCar = String(carrerasData[c][0]).trim();
     var matchV = valCar.match(/(\d+)/);
@@ -1057,11 +1051,13 @@ function procesarResultadosYCalcularGanadores() {
       if (estCar === "retirado") {
         if (!caballosRetirados[idxVal]) caballosRetirados[idxVal] = {};
         caballosRetirados[idxVal][numCar] = true;
+      } else {
+        if (!caballosActivosPorValida[idxVal]) caballosActivosPorValida[idxVal] = [];
+        caballosActivosPorValida[idxVal].push(numCar);
       }
     }
   }
 
-  // 2.1 Sincronización automática de estatus en la pestaña Carreras (Columna D)
   for (var r = 1; r < resultadosData.length; r++) {
     if (resultadosData[r][0]) {
       var valName = String(resultadosData[r][0]).trim();
@@ -1094,7 +1090,6 @@ function procesarResultadosYCalcularGanadores() {
     }
   }
 
-  // Función interna idéntica a la del Admin para evaluar si una sub-combinación sigue viva
   function evaluarCombinacionVivaBackend(subComboStr) {
     var partesLimpias = subComboStr.split('(')[0];
     var caballosElegidos = partesLimpias.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s !== ""; });
@@ -1106,11 +1101,22 @@ function procesarResultadosYCalcularGanadores() {
         if (caballoJugadoOriginal) {
           var numJugado = parseInt(caballoJugadoOriginal);
           
-          // Regla de arrastre por ejemplar retirado
+          // Regla de arrastre por ejemplar retirado con vuelta circular al #1
           var efectivoNum = numJugado;
           var maxIter = 30;
+          var maxValidaNum = 14;
+          if (caballosActivosPorValida[validaIdx]) {
+            var activos = caballosActivosPorValida[validaIdx] || [];
+            var retiradosObj = (caballosRetirados[validaIdx]) ? Object.keys(caballosRetirados[validaIdx]).map(Number) : [];
+            var allNums = activos.concat(retiradosObj);
+            if (allNums.length > 0) maxValidaNum = Math.max.apply(null, allNums);
+          }
+
           while (maxIter > 0 && caballosRetirados[validaIdx] && caballosRetirados[validaIdx][efectivoNum]) {
             efectivoNum++;
+            if (efectivoNum > maxValidaNum) {
+              efectivoNum = 1; // Vuelta circular al número 1
+            }
             maxIter--;
           }
           var caballoEfectivo = String(efectivoNum);
@@ -1126,7 +1132,6 @@ function procesarResultadosYCalcularGanadores() {
     return true;
   }
 
-  // 3. Evaluar cada ticket y actualizar la hoja exactamente como el Admin
   for (var t = 1; t < ticketsData.length; t++) {
     var estatusActual = String(ticketsData[t][6]).trim().toLowerCase();
     if (estatusActual === "pagado" || estatusActual === "anulado") continue; 
@@ -1143,7 +1148,6 @@ function procesarResultadosYCalcularGanadores() {
       var combo = subCombos[sj].trim();
       var estaViva = evaluarCombinacionVivaBackend(combo);
 
-      // Verificar si todas las 6 válidas tienen resultados oficiales
       var todasValidasOficiales = true;
       for (var vIdx = 1; vIdx <= 6; vIdx++) {
         if (!carrerasOficialesCorridas[vIdx]) {
@@ -1188,7 +1192,6 @@ function recalcularCajasVendedores() {
   var carrerasData = sheetCarreras ? sheetCarreras.getDataRange().getValues() : [];
   var resultadosData = sheetResultados ? sheetResultados.getDataRange().getValues() : [];
   
-  // PRESERVAR ESTADOS Y PREMIOS ANTERIORES REPORTADOS
   var estadosPrevios = {};
   for (var c = 1; c < cajaData.length; c++) {
     var taqKey = String(cajaData[c][0]).trim().toLowerCase();
@@ -1326,8 +1329,21 @@ function recalcularCajasVendedores() {
           var seleccionCaballo = parseInt(caballosElegidos[v]);
           
           if (caballosRetirados[validaKey] && caballosRetirados[validaKey][seleccionCaballo]) {
-            var favoritoValida = favoritosPorValida[validaKey];
-            if (favoritoValida !== undefined) seleccionCaballo = favoritoValida;
+            var efectivoNum = seleccionCaballo;
+            var maxIter = 30;
+            var maxValidaNum = 14;
+            if (caballosActivosPorValida[v + 1]) {
+              var activos = caballosActivosPorValida[v + 1] || [];
+              var retiradosObj = (caballosRetirados[v + 1]) ? Object.keys(caballosRetirados[v + 1]).map(Number) : [];
+              var allNums = activos.concat(retiradosObj);
+              if (allNums.length > 0) maxValidaNum = Math.max.apply(null, allNums);
+            }
+            while (maxIter > 0 && caballosRetirados[v + 1] && caballosRetirados[v + 1][efectivoNum]) {
+              efectivoNum++;
+              if (efectivoNum > maxValidaNum) efectivoNum = 1; // Vuelta circular al número 1
+              maxIter--;
+            }
+            seleccionCaballo = efectivoNum;
           }
           
           if (carrerasOficialesCorridas[validaKey]) {
@@ -1359,17 +1375,14 @@ function recalcularCajasVendedores() {
     
     var totalPremios = Math.max(calcPremios, preReportados);
     
-    // BALANCE REAL:
     var laQueda = totalVentas - totalPremios;
     var comision = 0;
     var netoEntregar = 0;
     
     if (laQueda < 0) {
-      // Pérdida para la Banca (Premios > Ventas)
       comision = 0;
-      netoEntregar = laQueda; // Refleja el saldo negativo exacto
+      netoEntregar = laQueda;
     } else {
-      // Ganancia para la Banca
       comision = laQueda * COMISION_QUEDA;
       netoEntregar = laQueda - comision;
     }

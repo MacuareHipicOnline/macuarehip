@@ -252,7 +252,6 @@
             background-color: #183c19;
         }
 
-        /* Estilo para los botones de selección de válidas */
         .valida-box {
             background: #fdfbf7;
             border: 1px solid #d4c5a9;
@@ -546,7 +545,7 @@
             &nbsp;&nbsp;• 10-11 inscritos = 2 puestos<br>
             &nbsp;&nbsp;• 12-20 inscritos = 3 puestos.<br>
             • Ticket Pierde Si La Selección No Entra en Regla De Puestos.<br>
-            • Retirado Corre Con El Siguiente Puesto.<br>
+            • Retirado Corre Con El Siguiente Puesto (Con Vuelta Circular al #1).<br>
             • Resultados Oficiales del INH O HINAVA.<br>
             • Pagos De Tickets Ganadores Automáticos Al Finalizar La Jornada.<br>
             <div class="t-center t-bold" style="margin-top: 4px; font-size: 8px;">¡Conserve su ticket! Válido por el día.</div>
@@ -683,9 +682,6 @@
                 });
         }
 
-        // ==========================================
-        // LOGIN SEGURO VALIDADO CONTRA LA HOJA USUARIOS
-        // ==========================================
         function intentarLogin(e) {
             e.preventDefault();
             let user = document.getElementById("loginUsuario").value.trim();
@@ -993,7 +989,7 @@
 
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
                     <p style="margin-bottom: 4px; font-weight: bold; color: #73502b;">2️⃣ Ejemplares Retirados</p>
-                    <p style="color: #4a584b; font-size: 13px;">Si un caballo seleccionado es retirado oficialmente, tu jugada corre automáticamente con el siguiente número de puesto disponible en la carrera.</p>
+                    <p style="color: #4a584b; font-size: 13px;">Si un caballo seleccionado es retirado oficialmente, tu jugada corre automáticamente con el siguiente número de puesto disponible en la carrera (con vuelta circular al #1).</p>
                 </div>
 
                 <div style="background: #fdfbf7; padding: 12px; border-radius: 8px; border: 1px solid #e2dac9; margin-bottom: 10px;">
@@ -1134,10 +1130,17 @@
             setTimeout(() => m.style.display = 'none', 300);
         }
 
+        // Regla Hípica Actualizada: Siguiente puesto hábil con vuelta circular al #1 si llega al límite
         function obtenerNumeroRealConArrastreVendedor(validaIdx, numeroJugado) {
             let inscritos = mapaCarrerasInscritos[validaIdx] || [];
             let numActual = parseInt(numeroJugado);
             if (isNaN(numActual)) return numeroJugado;
+
+            let maxCaballos = 14;
+            if (inscritos.length > 0) {
+                let nums = inscritos.map(c => parseInt(c.numero) || 0);
+                maxCaballos = Math.max(14, ...nums);
+            }
 
             let maxIter = 30;
             while (maxIter > 0) {
@@ -1145,6 +1148,9 @@
                 let esRetirado = caballoInfo && caballoInfo.estado.toLowerCase().includes("retirado");
                 if (esRetirado) {
                     numActual++;
+                    if (numActual > maxCaballos) {
+                        numActual = 1; // Vuelta circular al número 1
+                    }
                 } else {
                     break;
                 }
